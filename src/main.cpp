@@ -13,7 +13,7 @@ int main() {
     if(command=="exit"){
       break;
     }
-    else if(command.rfind("echo ",0)==0){
+    if(command.rfind("echo ",0)==0){
       std::string msg= command.substr(5);
       std::cout<<msg<<std::endl;
 
