@@ -10,6 +10,6 @@ int main() {
   while(1){
     std::cout << "$ ";
     std::cin>>command;
-    std::cout<<command<<": command not found";
+    std::cout<<command<<": command not found"<<std::endl;
   }
 }
