@@ -9,9 +9,14 @@ int main() {
   // TODO: Uncomment the code below to pass the first stage
   while(1){
     std::cout << "$ ";
-    std::cin>>command;
+    std::getline(std::cin, command);
     if(command=="exit"){
       break;
+    }
+    else if(command.rfind("echo ",0)==0){
+      std::string msg= command.substr(5);
+      std::cout<<std::endl<<msg<<std::endl;
+
     }
     std::cout<<command<<": command not found"<<std::endl;
   }
