@@ -21,7 +21,7 @@ int main() {
     if(command.rfind("type ",0)==0){
       std::string msg= command.substr(5);
       if(msg=="echo" || msg=="exit" || msg=="type"){
-        std::cout<<msg<<" is a shell bulletin"<<std::endl;
+        std::cout<<msg<<" is a shell builtin"<<std::endl;
         continue;
       }
       else{
