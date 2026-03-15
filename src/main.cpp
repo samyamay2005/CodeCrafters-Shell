@@ -18,6 +18,18 @@ int main() {
       std::cout<<msg<<std::endl;
       continue;
     }
+    if(command.rfind("type ",0)==0){
+      std::string msg= command.substr(5);
+      if(msg=="echo" || msg=="exit" || msg=="type"){
+        std::cout<<msg<<" is a shell bulletin"<<std::endl;
+        continue;
+      }
+      else{
+        std::cout<<msg<<": not found"<<std::endl;
+        continue;
+      }
+      continue;
+    }
     std::cout<<command<<": command not found"<<std::endl;
   }
 }
