@@ -16,7 +16,7 @@ int main() {
     if(command.rfind("echo ",0)==0){
       std::string msg= command.substr(5);
       std::cout<<msg<<std::endl;
-
+      continue;
     }
     std::cout<<command<<": command not found"<<std::endl;
   }
