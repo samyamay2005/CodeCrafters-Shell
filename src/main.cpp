@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <unistd.h>
+#include <cstdlib>
 
 int main() {
   // Flush after every std::cout / std:cerr
@@ -19,17 +22,32 @@ int main() {
       continue;
     }
     if(command.rfind("type ",0)==0){
-      std::string msg= command.substr(5);
-      if(msg=="echo" || msg=="exit" || msg=="type"){
-        std::cout<<msg<<" is a shell builtin"<<std::endl;
-        continue;
-      }
-      else{
-        std::cout<<msg<<": not found"<<std::endl;
-        continue;
-      }
-      continue;
+    std::string msg = command.substr(5);
+
+    if(msg=="echo" || msg=="exit" || msg=="type"){
+    std::cout<<msg<<" is a shell builtin"<<std::endl;
+    continue;
     }
+
+  char* pathEnv = getenv("PATH");
+  std::string pathStr = pathEnv;
+  std::stringstream ss(pathStr);
+  std::string dir;
+
+  while(std::getline(ss, dir, ':')){
+    std::string fullPath = dir + "/" + msg;
+
+    if(access(fullPath.c_str(), X_OK) == 0){
+      std::cout<<msg<<" is "<<fullPath<<std::endl;
+      goto found;
+    }
+  }
+
+  std::cout<<msg<<": not found"<<std::endl;
+
+  found:
+  continue;
+}
     std::cout<<command<<": command not found"<<std::endl;
   }
 }
