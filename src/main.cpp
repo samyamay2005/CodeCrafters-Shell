@@ -4,62 +4,69 @@
 #include<unistd.h>
 #include<cstdlib>
 #include<vector>
-#include <sys/wait.h>
+#include<sys/wait.h>
+#include<filesystem>
+
+using namespace std;
+namespace fs =filesystem;
 
 int main() {
   // Flush after every std::cout / std:cerr
-  std::cout << std::unitbuf;
-  std::cerr << std::unitbuf;
-  std::string command;
+  cout << unitbuf;
+  cerr << unitbuf;
+  string command;
   // TODO: Uncomment the code below to pass the first stage
   while(1){
-    std::cout << "$ ";
-    std::getline(std::cin, command);
+    cout << "$ ";
+    getline(cin, command);
     if(command=="exit"){
       break;
     }
     if(command.rfind("echo ",0)==0){
-      std::string msg= command.substr(5);
-      std::cout<<msg<<std::endl;
+      string msg= command.substr(5);
+      cout<<msg<<endl;
       continue;
     }
+    if(command=="pwd"){
+      cout<<fs::current_path();
+    }
     if(command.rfind("type ",0)==0){
-    std::string msg = command.substr(5);
+      string msg = command.substr(5);
 
-    if(msg=="echo" || msg=="exit" || msg=="type"){
-    std::cout<<msg<<" is a shell builtin"<<std::endl;
-    continue;
-    }
-
-    char* pathEnv = getenv("PATH");
-    std::string pathStr = pathEnv;
-    std::stringstream ss(pathStr);
-    std::string dir;
-
-    while(std::getline(ss, dir, ':')){
-      std::string fullPath = dir + "/" + msg;
-
-      if(access(fullPath.c_str(), X_OK) == 0){
-        std::cout<<msg<<" is "<<fullPath<<std::endl;
-        goto found;
+      if(msg=="echo" || msg=="exit" || msg=="type"){
+        cout<<msg<<" is a shell builtin"<<endl;
+        continue;
       }
-    }
 
-    std::cout<<msg<<": not found"<<std::endl;
+      char* pathEnv = getenv("PATH");
+      string pathStr = pathEnv;
+      stringstream ss(pathStr);
+      string dir;
 
-    found:
-    continue;
+      while(getline(ss, dir, ':')){
+        string fullPath = dir + "/" + msg;
+
+        if(access(fullPath.c_str(), X_OK) == 0){
+          cout<<msg<<" is "<<fullPath<<endl;
+          goto found;
+        }
+      }
+
+      cout<<msg<<": not found"<<endl;
+
+      found:
+      continue;
     }
-    std::vector<std::string> tokens;
-    std::stringstream ss(command);
-    std::string word;
+    vector<string> tokens;
+    stringstream ss(command);
+    string word;
 
     while (ss >> word) {
       tokens.push_back(word);
     }
 
     // Convert to char* array
-    std::vector<char*> args;
+    vector<char*> args;
     for (auto& token : tokens) {
       args.push_back(&token[0]);
     }
@@ -73,7 +80,7 @@ int main() {
     execvp(args[0], args.data());
 
     // If exec fails
-    std::cout << tokens[0] << ": command not found" << std::endl;
+    cout << tokens[0] << ": command not found" << endl;
     exit(1);
     } else {
       // Parent waits
