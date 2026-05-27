@@ -28,7 +28,7 @@ int main() {
       continue;
     }
     if(command=="pwd"){
-      cout<<fs::current_path()<<endl;
+      cout<<fs::current_path().string() <<endl;
       continue;
     }
     if(command.rfind("type ",0)==0){
