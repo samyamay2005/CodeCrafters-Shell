@@ -28,14 +28,9 @@ int main() {
 
     if(command.rfind("echo ",0)==0){
       string msg= command.substr(5);
-      int ss=msg.size();
+      int s_s=msg.size();
       if(!msg.empty()&& msg.front() == '\''&& msg.back() == '\''){
-        string squote=msg.substr(1, ss-2);
-        cout<<squote<<endl;
-        continue;
-      }
-      if(!msg.empty()&& msg.front() == '\"'&& msg.back() == '\"'){
-        string squote=msg.substr(1, ss-2);
+        string squote=msg.substr(1, s_s-2);
         cout<<squote<<endl;
         continue;
       }
