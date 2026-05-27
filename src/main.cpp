@@ -34,6 +34,10 @@ int main() {
 
     if(command.rfind("cd ",0)==0){
       string chd= command.substr(3);
+      if(chd=="~"){
+        const char* homedir=getenv("HOME");
+        fs::current_path(homedir);
+      }
       try
       {
         fs::current_path(chd);
