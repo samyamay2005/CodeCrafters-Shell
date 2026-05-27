@@ -27,53 +27,44 @@ int main() {
 
 
     if(command.rfind("echo ",0)==0){
-      string msg= command.substr(5);
-      int s_s=msg.size();
-      if(!msg.empty()&& msg.front() == '\''&& msg.back() == '\''){
-        string squote=msg.substr(1, s_s-2);
-        cout<<squote<<endl;
-        continue;
+      string msg = command.substr(5);
+
+      vector<string> args;
+      string current;
+      bool inSingleQuote = false;
+
+      for(char c : msg){
+
+          if(c == '\''){
+              inSingleQuote = !inSingleQuote;
+              continue;
+          }
+
+          if(c == ' ' && !inSingleQuote){
+              if(!current.empty()){
+                  args.push_back(current);
+                  current.clear();
+              }
+          }
+          else{
+              current += c;
+          }
       }
 
-      stringstream ss(msg);
-      string word;
-      bool first = true;
+      if(!current.empty()){
+          args.push_back(current);
+      }
 
-      while(ss >> word){
-          if(!first){
+      for(size_t i = 0; i < args.size(); i++){
+          if(i > 0){
               cout << " ";
           }
-          cout << word;
-          first = false;
+          cout << args[i];
       }
 
       cout << endl;
       continue;
-    }
-    
-    
-    if(command=="pwd"){
-      cout<<fs::current_path().string() <<endl;
-      continue;
-    }
-
-    if(command.rfind("cd ",0)==0){
-      string chd= command.substr(3);
-      if(chd=="~"){
-        const char* homedir=getenv("HOME");
-        fs::current_path(homedir);
-        continue;
-      }
-      try
-      {
-        fs::current_path(chd);
-      }
-      catch(const fs::filesystem_error& e)
-      {
-        cerr << "cd: " << chd << ": No such file or directory" << endl;
-      }
-      continue;
-    }
+  }
     
     
     if(command.rfind("type ",0)==0){
