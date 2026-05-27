@@ -26,7 +26,7 @@ int main() {
       string msg= command.substr(5);
       int ss=msg.size();
       if(msg.rfind("'", 0)&&msg.rfind("'",ss-1)){
-        string squote=msg.substr(1, ss-2);
+        string squote=msg.substr(2, ss-3);
         cout<<squote<<endl;
         continue;
       }
