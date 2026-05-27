@@ -31,10 +31,23 @@ int main() {
       cout<<fs::current_path().string() <<endl;
       continue;
     }
+
+    if(command=="cd"){
+      string chd= command.substr(3);
+      try
+      {
+        fs::current_path(chd);
+      }
+      catch(const fs::filesystem_error& e)
+      {
+        std::cerr << e.what() << '\n';
+      }
+      continue;
+    }
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
-      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"){
+      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd"){
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
       }
