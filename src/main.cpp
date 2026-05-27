@@ -32,7 +32,7 @@ int main() {
       continue;
     }
 
-    if(command.rfind("cd ",0)){
+    if(command.rfind("cd ",0)==0){
       string chd= command.substr(3);
       try
       {
