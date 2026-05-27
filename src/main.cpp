@@ -37,6 +37,7 @@ int main() {
       if(chd=="~"){
         const char* homedir=getenv("HOME");
         fs::current_path(homedir);
+        continue;
       }
       try
       {
