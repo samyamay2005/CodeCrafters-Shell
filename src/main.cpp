@@ -28,12 +28,12 @@ int main() {
       continue;
     }
     if(command=="pwd"){
-      cout<<"pwd is "<<fs::current_path();
+      cout<<fs::current_path();
     }
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
-      if(msg=="echo" || msg=="exit" || msg=="type"){
+      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"){
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
       }
