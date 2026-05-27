@@ -32,7 +32,7 @@ int main() {
       continue;
     }
 
-    if(command=="cd"){
+    if(command.rfind("cd ",0)){
       string chd= command.substr(3);
       try
       {
@@ -40,7 +40,7 @@ int main() {
       }
       catch(const fs::filesystem_error& e)
       {
-        std::cerr << e.what() << '\n';
+        cerr << "cd: " << chd << ": No such file or directory" << endl;
       }
       continue;
     }
