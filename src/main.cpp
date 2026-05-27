@@ -24,6 +24,12 @@ int main() {
     }
     if(command.rfind("echo ",0)==0){
       string msg= command.substr(5);
+      int ss=msg.size();
+      if(msg.rfind("'", 0)&&msg.rfind("'",ss-1)){
+        string squote=msg.substr(1, ss-2);
+        cout<<squote<<endl;
+        continue;
+      }
       cout<<msg<<endl;
       continue;
     }
