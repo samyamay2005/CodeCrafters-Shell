@@ -29,6 +29,7 @@ int main() {
     }
     if(command=="pwd"){
       cout<<fs::current_path()<<endl;
+      continue;
     }
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
@@ -68,7 +69,7 @@ int main() {
     // Convert to char* array
     vector<char*> args;
     for (auto& token : tokens) {
-      args.push_back(&token[0]);
+      args.push_back(token.data());
     }
     args.push_back(nullptr);
 
