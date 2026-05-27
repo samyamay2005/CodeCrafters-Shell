@@ -28,7 +28,7 @@ int main() {
       continue;
     }
     if(command=="pwd"){
-      cout<<fs::current_path();
+      cout<<fs::current_path()<<endl;
     }
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
