@@ -34,7 +34,25 @@ int main() {
         cout<<squote<<endl;
         continue;
       }
-      cout<<msg<<endl;
+      if(!msg.empty()&& msg.front() == '\"'&& msg.back() == '\"'){
+        string squote=msg.substr(1, ss-2);
+        cout<<squote<<endl;
+        continue;
+      }
+
+      stringstream ss(msg);
+      string word;
+      bool first = true;
+
+      while(ss >> word){
+          if(!first){
+              cout << " ";
+          }
+          cout << word;
+          first = false;
+      }
+
+      cout << endl;
       continue;
     }
     
