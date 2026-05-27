@@ -19,20 +19,26 @@ int main() {
   while(1){
     cout << "$ ";
     getline(cin, command);
+    
+    
     if(command=="exit"){
       break;
     }
+
+
     if(command.rfind("echo ",0)==0){
       string msg= command.substr(5);
       int ss=msg.size();
-      if(msg.rfind("'", 0)&&msg.rfind("'",ss-1)){
-        string squote=msg.substr(2, ss-3);
+      if(!msg.empty()&& msg.front() == '\''&& msg.back() == '\''){
+        string squote=msg.substr(1, ss-2);
         cout<<squote<<endl;
         continue;
       }
       cout<<msg<<endl;
       continue;
     }
+    
+    
     if(command=="pwd"){
       cout<<fs::current_path().string() <<endl;
       continue;
@@ -55,6 +61,8 @@ int main() {
       }
       continue;
     }
+    
+    
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
@@ -82,6 +90,7 @@ int main() {
       found:
       continue;
     }
+    
     vector<string> tokens;
     stringstream ss(command);
     string word;
