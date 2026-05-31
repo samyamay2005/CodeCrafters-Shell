@@ -16,19 +16,24 @@ vector<string> tokenize(const string& input) {
     vector<string> tokens;
     string current;
     bool inSingleQuote = false;
+    bool isDoubleQuote = false;
 
     for(char c : input) {
         if(c == '\'') {
             inSingleQuote = !inSingleQuote;
             continue;
         }
-
-        if(c == ' ' && !inSingleQuote) {
+        if(c =='\"'){
+          isDoubleQuote=!isDoubleQuote;
+          continue;
+        }
+        if(c == ' ' && !inSingleQuote&& !isDoubleQuote) {
             if(!current.empty()) {
                 tokens.push_back(current);
                 current.clear();
             }
-        } else {
+        }
+        else {
             current += c;
         }
     }
