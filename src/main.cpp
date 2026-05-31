@@ -23,7 +23,7 @@ vector<string> tokenize(const string& input) {
             inSingleQuote = !inSingleQuote;
             continue;
         }
-        if(c =='\"'){
+        if(c =='"'){
           isDoubleQuote=!isDoubleQuote;
           continue;
         }
