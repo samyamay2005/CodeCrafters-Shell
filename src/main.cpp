@@ -45,9 +45,11 @@ int main() {
                   args.push_back(current);
                   current.clear();
               }
+              continue;
           }
           else{
               current += c;
+              continue;
           }
       }
 
