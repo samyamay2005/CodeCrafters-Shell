@@ -87,6 +87,25 @@ int main() {
     continue;
     }
 
+    if (command == "pwd") {
+      cout << fs::current_path().string() << endl;
+      continue;
+    }
+
+    if (command.rfind("cd ", 0) == 0) {
+      string chd = command.substr(3);
+      if (chd == "~") {
+        const char *homedir = getenv("HOME");
+        fs::current_path(homedir);
+        continue;
+      }
+      try {
+        fs::current_path(chd);
+      } catch (const fs::filesystem_error &e) {
+        cerr << "cd: " << chd << ": No such file or directory" << endl;
+      }
+      continue;
+    }
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
