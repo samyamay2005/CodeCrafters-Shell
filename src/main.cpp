@@ -6,9 +6,39 @@
 #include<vector>
 #include<sys/wait.h>
 #include<filesystem>
+#include<fstream>
 
 using namespace std;
 namespace fs =filesystem;
+
+
+vector<string> tokenize(const string& input) {
+    vector<string> tokens;
+    string current;
+    bool inSingleQuote = false;
+
+    for(char c : input) {
+        if(c == '\'') {
+            inSingleQuote = !inSingleQuote;
+            continue;
+        }
+
+        if(c == ' ' && !inSingleQuote) {
+            if(!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+        } else {
+            current += c;
+        }
+    }
+
+    if(!current.empty()) {
+        tokens.push_back(current);
+    }
+
+    return tokens;
+}
 
 int main() {
   // Flush after every std::cout / std:cerr
@@ -27,36 +57,8 @@ int main() {
 
 
     if(command.rfind("echo ",0)==0){
-      string msg = command.substr(5);
 
-      vector<string> args;
-      string current;
-      bool inSingleQuote = false;
-
-      for(char c : msg){
-
-          if(c == '\''){
-              inSingleQuote = !inSingleQuote;
-              continue;
-          }
-
-          if(c == ' ' && !inSingleQuote){
-              if(!current.empty()){
-                  args.push_back(current);
-                  current.clear();
-              }
-              continue;
-          }
-          else{
-              current += c;
-              continue;
-          }
-      }
-
-      if(!current.empty()){
-          args.push_back(current);
-      }
-
+      vector<string> args= tokenize(command.substr(5));
       for(size_t i = 0; i < args.size(); i++){
           if(i > 0){
               cout << " ";
@@ -66,13 +68,29 @@ int main() {
 
       cout << endl;
       continue;
-  }
+    }
     
-    
+    vector<string> tokens = tokenize(command);
+
+    if(tokens[0]=="cat"){
+       for(size_t i = 1; i < tokens.size(); i++) {
+
+        ifstream file(tokens[i]);
+
+        string line;
+        while(getline(file, line)) {
+            cout << line;
+        }
+    }
+
+    cout << endl;
+    continue;
+    }
+
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
-      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd"){
+      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd" || msg=="cat"){
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
       }
