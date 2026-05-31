@@ -113,9 +113,9 @@ int main() {
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
       }
-      else if(msg=="cat"){
-        cout<<msg<<" is "<<fs::current_path().string()<<endl;
-      }
+      // else if(msg=="cat"){
+      //   cout<<msg<<" is "<<fs::current_path().string()<<endl;
+      // }
 
       char* pathEnv = getenv("PATH");
       string pathStr = pathEnv;
