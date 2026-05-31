@@ -109,9 +109,12 @@ int main() {
     if(command.rfind("type ",0)==0){
       string msg = command.substr(5);
 
-      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd" || msg=="cat"){
+      if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd" ){
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
+      }
+      else if(msg=="cat"){
+        cout<<msg<<" is "<<fs::current_path().string()<<endl;
       }
 
       char* pathEnv = getenv("PATH");
