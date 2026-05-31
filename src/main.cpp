@@ -115,17 +115,17 @@ int main() {
       continue;
     }
     
-    vector<string> tokens;
+    vector<string> token_list;
     stringstream ss(command);
     string word;
 
     while (ss >> word) {
-      tokens.push_back(word);
+      token_list.push_back(word);
     }
 
     // Convert to char* array
     vector<char*> args;
-    for (auto& token : tokens) {
+    for (auto& token : token_list) {
       args.push_back(token.data());
     }
     args.push_back(nullptr);
@@ -138,7 +138,7 @@ int main() {
     execvp(args[0], args.data());
 
     // If exec fails
-    cout << tokens[0] << ": command not found" << endl;
+    cout << token_list[0] << ": command not found" << endl;
     exit(1);
     } else {
       // Parent waits
