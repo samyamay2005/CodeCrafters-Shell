@@ -19,15 +19,15 @@ vector<string> tokenize(const string& input) {
     bool isDoubleQuote = false;
 
     for(char c : input) {
-        if(c == '\'') {
+        if(c == '\'' && !isDoubleQuote) {
             inSingleQuote = !inSingleQuote;
             continue;
         }
-        if(c =='"'){
-          isDoubleQuote=!isDoubleQuote;
+        if(c =='"' && !inSingleQuote){
+          isDoubleQuote= !isDoubleQuote;
           continue;
         }
-        if(c == ' ' && !inSingleQuote&& !isDoubleQuote) {
+        if(c == ' ' && !inSingleQuote && !isDoubleQuote) {
             if(!current.empty()) {
                 tokens.push_back(current);
                 current.clear();
