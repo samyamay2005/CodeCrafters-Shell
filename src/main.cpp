@@ -17,6 +17,7 @@ vector<string> tokenize(const string& input) {
     string current;
     bool inSingleQuote = false;
     bool isDoubleQuote = false;
+    bool escaped = false;
 
     for(char c : input) {
         if(c == '\'' && !isDoubleQuote) {
@@ -27,6 +28,19 @@ vector<string> tokenize(const string& input) {
           isDoubleQuote= !isDoubleQuote;
           continue;
         }
+        
+        if(escaped) {
+          current += c;
+          escaped = false;
+          continue;
+        }
+
+        if(c == '\\' && !inSingleQuote && !isDoubleQuote) {
+          escaped = true;
+          continue;
+        }
+
+        
         if(c == ' ' && !inSingleQuote && !isDoubleQuote) {
             if(!current.empty()) {
                 tokens.push_back(current);
