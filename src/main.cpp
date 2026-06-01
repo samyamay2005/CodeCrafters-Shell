@@ -55,36 +55,42 @@ int main() {
     cout << "$ ";
     getline(cin, command);
     
-    
-    if(command=="exit"){
+    vector<string> tokens= tokenize(command);
+
+    if(tokens.empty()){
+      continue;
+    }
+
+    string cmd= tokens[0];
+
+    if(cmd=="exit"){
       break;
     }
 
 
-    if(command.rfind("echo ",0)==0){
+    if(cmd=="echo"){
 
-      vector<string> args= tokenize(command.substr(5));
-      for(size_t i = 0; i < args.size(); i++){
-          if(i > 0){
+      for(size_t i = 1; i < tokens.size(); i++){
+          if(i > 1){
               cout << " ";
           }
-          cout << args[i];
+          cout << tokens[i];
       }
 
       cout << endl;
       continue;
     }
     
-    vector<string> tokens = tokenize(command);
 
-    if(tokens[0]=="cat"){
-       for(size_t i = 1; i < tokens.size(); i++) {
+    if(cmd=="cat"){
+
+      for(size_t i = 1; i < tokens.size(); i++) {
 
         ifstream file(tokens[i]);
 
         string line;
         while(getline(file, line)) {
-            cout << line;
+          cout << line;
         }
     }
 
@@ -92,18 +98,23 @@ int main() {
     continue;
     }
 
-    if (command == "pwd") {
+    if (cmd == "pwd") {
       cout << fs::current_path().string() << endl;
       continue;
     }
 
-    if (command.rfind("cd ", 0) == 0) {
-      string chd = command.substr(3);
+    if (cmd=="cd") {
+      if(tokens.size()<2)
+        continue;
+
+      string chd = tokens[1];
+      
       if (chd == "~") {
         const char *homedir = getenv("HOME");
         fs::current_path(homedir);
         continue;
       }
+      
       try {
         fs::current_path(chd);
       } catch (const fs::filesystem_error &e) {
@@ -111,16 +122,14 @@ int main() {
       }
       continue;
     }
-    if(command.rfind("type ",0)==0){
+    if(cmd == "type"){
       string msg = command.substr(5);
 
       if(msg=="echo" || msg=="exit" || msg=="type"|| msg=="pwd"|| msg=="cd" ){
         cout<<msg<<" is a shell builtin"<<endl;
         continue;
       }
-      // else if(msg=="cat"){
-      //   cout<<msg<<" is "<<fs::current_path().string()<<endl;
-      // }
+      
 
       char* pathEnv = getenv("PATH");
       string pathStr = pathEnv;
@@ -142,13 +151,7 @@ int main() {
       continue;
     }
     
-    vector<string> token_list;
-    stringstream ss(command);
-    string word;
-
-    while (ss >> word) {
-      token_list.push_back(word);
-    }
+    vector<string> token_list= tokenize(command);
 
     // Convert to char* array
     vector<char*> args;
