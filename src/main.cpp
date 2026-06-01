@@ -20,15 +20,6 @@ vector<string> tokenize(const string& input) {
     bool escaped = false;
 
     for(char c : input) {
-        if(c == '\'' && !isDoubleQuote) {
-            inSingleQuote = !inSingleQuote;
-            continue;
-        }
-        if(c =='"' && !inSingleQuote){
-          isDoubleQuote= !isDoubleQuote;
-          continue;
-        }
-        
         if(escaped) {
           current += c;
           escaped = false;
@@ -40,6 +31,17 @@ vector<string> tokenize(const string& input) {
           continue;
         }
 
+        
+      
+        if(c == '\'' && !isDoubleQuote) {
+            inSingleQuote = !inSingleQuote;
+            continue;
+        }
+        if(c =='"' && !inSingleQuote){
+          isDoubleQuote= !isDoubleQuote;
+          continue;
+        }
+        
         
         if(c == ' ' && !inSingleQuote && !isDoubleQuote) {
             if(!current.empty()) {
