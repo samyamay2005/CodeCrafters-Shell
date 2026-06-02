@@ -38,7 +38,7 @@ vector<string> tokenize(const string& input) {
           continue;
         }
 
-        if(c == '\\' && !inSingleQuote && !isDoubleQuote) {
+        if(c == '\\' && !inSingleQuote) {
           escaped = true;
           continue;
         }
