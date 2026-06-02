@@ -143,7 +143,8 @@ int main() {
                     continue;
                 }
                 string line;
-                while(getline(file, line)) cout << line << "\n";
+                while(getline(file, line)) 
+                  cout << line;
             }
             cout << flush;
 
