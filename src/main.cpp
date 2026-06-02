@@ -63,6 +63,8 @@ struct redirectInfo{
   bool stderrAppend = false;
 };
 
+
+
 // Parse tokens: extract redirect file (if any) and return clean args
 // Returns the output filename, or "" if no redirect
 redirectInfo parseRedirect(vector<string>& tokens) {
@@ -101,7 +103,8 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
-
+        
+        for(auto& t : tokens) cerr << "[TOKEN: " << t << "]" << endl;
         // Parse out any redirection FIRST, before dispatch
         redirectInfo redir = parseRedirect(tokens);
         string cmd = tokens[0];
