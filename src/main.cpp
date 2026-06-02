@@ -103,7 +103,6 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
-        for(auto& t : tokens) cerr << "[TOKEN: " << t << "]" << endl;
         // Parse out any redirection FIRST, before dispatch
         redirectInfo redir = parseRedirect(tokens);
         string cmd = tokens[0];
