@@ -20,9 +20,21 @@ vector<string> tokenize(const string& input) {
     bool escaped = false;
 
     for(char c : input) {
+
         if(escaped) {
-          current += c;
           escaped = false;
+          if(isDoubleQuote){
+            if(c=='"' || c=='\\'){
+              current+=c;
+            }else{
+              current+='\\';
+              current+=c;
+            }
+          }else{
+            current += c;
+          }
+          
+          
           continue;
         }
 
