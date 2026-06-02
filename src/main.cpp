@@ -12,6 +12,7 @@ using namespace std;
 namespace fs =filesystem;
 
 
+
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
     string current;
@@ -74,6 +75,22 @@ vector<string> tokenize(const string& input) {
     return tokens;
 }
 
+
+bool createTextFile(const string& fname,const string& content){
+  ofstream oFile(fname);
+
+  if(!oFile.is_open()){
+    cerr<<"Error couldn't create or open file "<<fname<<endl;
+    return false;
+  }
+
+  oFile<<content<<endl;
+
+  return true;
+}
+
+
+
 int main() {
   // Flush after every std::cout / std:cerr
   cout << unitbuf;
@@ -100,10 +117,24 @@ int main() {
     if(cmd=="echo"){
 
       for(size_t i = 1; i < tokens.size(); i++){
-          if(i > 1){
-              cout << " ";
+        if(i > 1){
+          cout << " ";
+        }
+        if(tokens[i]==">"||tokens[i]=="1>"){
+          if(tokens[i+1].substr(tokens.size()-4,4)==".txt"){
+            string filename = tokens[i+1];
+            stringstream sb;
+            for(size_t j=1;j<=i;j++){
+              sb<< tokens[j];
+              sb<<" ";
+            }
+            string contents = sb.str();
+            createTextFile(filename,contents);
           }
+        }else{
           cout << tokens[i];
+        }
+        
       }
 
       cout << endl;
