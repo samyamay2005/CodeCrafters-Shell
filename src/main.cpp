@@ -75,7 +75,7 @@ redirectInfo parseRedirect(vector<string>& tokens) {
         if ((tokens[i] == ">" || tokens[i] == "1>") && i + 1 < tokens.size()) {
             info.stdoutFile = tokens[++i];
             info.stdoutAppend = false;
-        } else if ((tokens[i] == ">" || tokens[i] == "1>") && i + 1 < tokens.size()){
+        } else if ((tokens[i] == ">>" || tokens[i] == "1>>") && i + 1 < tokens.size()){
             info.stdoutFile = tokens[++i];
             info.stdoutAppend = true;
         } else if (tokens[i] == "2>" && i + 1 < tokens.size()) {
@@ -103,7 +103,6 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
-        
         for(auto& t : tokens) cerr << "[TOKEN: " << t << "]" << endl;
         // Parse out any redirection FIRST, before dispatch
         redirectInfo redir = parseRedirect(tokens);
