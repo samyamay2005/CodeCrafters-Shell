@@ -56,23 +56,28 @@ vector<string> tokenize(const string& input) {
     return tokens;
 }
 
+struct redirectInfo{
+  string stdoutFile;
+  string stderrFile;
+};
+
 // Parse tokens: extract redirect file (if any) and return clean args
 // Returns the output filename, or "" if no redirect
 string parseRedirect(vector<string>& tokens) {
+    redirectInfo info;
     string outFile;
     vector<string> cleaned;
     for (size_t i = 0; i < tokens.size(); i++) {
-        if (tokens[i] == ">" || tokens[i] == "1>") {
-            if (i + 1 < tokens.size()) {
-                outFile = tokens[i + 1];
-                i++; // skip filename too
-            }
+        if ((tokens[i] == ">" || tokens[i] == "1>") && i + 1 < tokens.size()) {
+            info.stdoutFile = tokens[++i];
+        } else if (tokens[i] == "2>" && i + 1 < tokens.size()) {
+            info.stderrFile = tokens[++i];
         } else {
             cleaned.push_back(tokens[i]);
         }
     }
     tokens = cleaned;
-    return outFile;
+    return info;
 }
 
 int main() {
