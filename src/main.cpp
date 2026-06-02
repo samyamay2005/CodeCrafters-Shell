@@ -63,7 +63,7 @@ struct redirectInfo{
 
 // Parse tokens: extract redirect file (if any) and return clean args
 // Returns the output filename, or "" if no redirect
-string parseRedirect(vector<string>& tokens) {
+redirectInfo parseRedirect(vector<string>& tokens) {
     redirectInfo info;
     string outFile;
     vector<string> cleaned;
@@ -93,18 +93,24 @@ int main() {
         if(tokens.empty()) continue;
 
         // Parse out any redirection FIRST, before dispatch
-        string outFile = parseRedirect(tokens);
+        redirectInfo redir = parseRedirect(tokens);
         string cmd = tokens[0];
 
         if(cmd == "exit") break;
 
         int redirFd = -1;
-        if (!outFile.empty()) {
-            redirFd = open(outFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (redirFd < 0) {
-                cerr << "cannot open " << outFile << " for writing" << endl;
-                continue;
-            }
+        int stdoutFd = -1;
+        if (!redir.stdoutFile.empty()) {
+          stdoutFd = open(redir.stdoutFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+          if (stdoutFd < 0) {
+            cerr << "cannot open " << redir.stdoutFile << endl; continue;
+          }
+        }
+
+        int stderrFd = -1;
+        if (!redir.stderrFile.empty()) {
+          stderrFd = open(redir.stderrFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+          if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
         if(cmd == "echo") {
@@ -206,18 +212,16 @@ int main() {
         args.push_back(nullptr);
 
         pid_t pid = fork();
-        if(pid == 0) {
-            // In child: redirect stdout to file if needed
-            if(redirFd >= 0) {
-                dup2(redirFd, STDOUT_FILENO);
-                close(redirFd);
-            }
-            execvp(args[0], args.data());
-            cerr << tokens[0] << ": command not found" << endl;
-            exit(1);
-        } else {
-            if(redirFd >= 0) close(redirFd);
-            waitpid(pid, NULL, 0);
+        if (pid == 0) {
+          if (stdoutFd >= 0) { dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+          if (stderrFd >= 0) { dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+          execvp(args[0], args.data());
+          cerr << tokens[0] << ": command not found" << endl;
+          exit(1);
+        }else {
+          if (stdoutFd >= 0) close(stdoutFd);
+          if (stderrFd >= 0) close(stderrFd);
+          waitpid(pid, NULL, 0);
         }
     }
 }
