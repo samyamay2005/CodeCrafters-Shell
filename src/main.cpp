@@ -121,7 +121,7 @@ int main() {
           cout << " ";
         }
         if(tokens[i]==">"||tokens[i]=="1>"){
-          if(tokens[i+1].substr(tokens.size()-4,4)==".txt"){
+          if(tokens[i+1].substr(tokens.size()-4,4)==".txt"||tokens[i+1].substr(tokens.size()-3,3)==".md"){
             string filename = tokens[i+1];
             stringstream sb;
             for(size_t j=1;j<=i;j++){
