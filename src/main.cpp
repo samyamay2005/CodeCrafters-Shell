@@ -32,11 +32,12 @@ vector<string> tokenize(const string& input) {
         }
 
         
-      
         if(c == '\'' && !isDoubleQuote) {
-            inSingleQuote = !inSingleQuote;
-            continue;
+          inSingleQuote = !inSingleQuote;
+          continue;
         }
+
+        
         if(c =='"' && !inSingleQuote){
           isDoubleQuote= !isDoubleQuote;
           continue;
