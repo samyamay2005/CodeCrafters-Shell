@@ -98,7 +98,7 @@ int main() {
 
         if(cmd == "exit") break;
 
-        int redirFd = -1;
+        // int redirFd = -1;
         int stdoutFd = -1;
         if (!redir.stdoutFile.empty()) {
           stdoutFd = open(redir.stdoutFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -113,65 +113,54 @@ int main() {
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
-        if(cmd == "echo") {
-            int savedStdout = -1;
-            if (redirFd >= 0) {
-                savedStdout = dup(STDOUT_FILENO);
-                dup2(redirFd, STDOUT_FILENO);
-                close(redirFd);
-            }
 
-            for(size_t i = 1; i < tokens.size(); i++) {
-                if(i > 1) cout << " ";
-                cout << tokens[i];
-            }
-            cout << endl;
+      if(cmd == "echo") {
+        int savedStdout = -1, savedStderr = -1;
+        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-            // Restore stdout
-            if (savedStdout >= 0) {
-                dup2(savedStdout, STDOUT_FILENO);
-                close(savedStdout);
-            }
+        for(size_t i = 1; i < tokens.size(); i++) {
+          if(i > 1) cout << " ";
+            cout << tokens[i];
+        }
+        cout << endl;
+
+        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+        continue;
+      }
+
+      if(cmd == "cat") {
+        int savedStdout = -1, savedStderr = -1;
+        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+
+        for(size_t i = 1; i < tokens.size(); i++) {
+          ifstream file(tokens[i]);
+          if(!file.is_open()) {
+            cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
             continue;
-        }
-
-        if(cmd == "cat") {
-          int savedStdout = -1;
-          if(redirFd >= 0) {
-            savedStdout = dup(STDOUT_FILENO);
-            dup2(redirFd, STDOUT_FILENO);
-            close(redirFd);
           }
-
-          for(size_t i = 1; i < tokens.size(); i++) {
-            ifstream file(tokens[i]);
-            if(!file.is_open()) {
-              cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
-              continue;
-            }
-            // Read and write the file content exactly as-is
-            cout << file.rdbuf();
-          }
-          cout << flush;
-
-          if (savedStdout >= 0) {
-            dup2(savedStdout, STDOUT_FILENO);
-            close(savedStdout);
-          }
-          continue;
+          cout << file.rdbuf();
         }
+        cout << flush;
 
-        if(cmd == "pwd") {
-            int savedStdout = -1;
-            if (redirFd >= 0) {
-                savedStdout = dup(STDOUT_FILENO);
-                dup2(redirFd, STDOUT_FILENO);
-                close(redirFd);
-            }
-            cout << fs::current_path().string() << endl;
-            if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-            continue;
-        }
+        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+        continue;
+      }
+
+      if(cmd == "pwd") {
+        int savedStdout = -1, savedStderr = -1;
+        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+
+        cout << fs::current_path().string() << endl;
+
+        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+        continue;
+      }
 
         if(cmd == "cd") {
             if(tokens.size() < 2) continue;
