@@ -7,7 +7,7 @@
 #include<sys/wait.h>
 #include<filesystem>
 #include<fstream>
-#include<fcntl.h>   // <-- add this for open()
+#include<fcntl.h>   
 
 using namespace std;
 namespace fs = filesystem;
@@ -59,6 +59,8 @@ vector<string> tokenize(const string& input) {
 struct redirectInfo{
   string stdoutFile;
   string stderrFile;
+  bool stdoutAppend = false;
+  bool stderrAppend = false;
 };
 
 // Parse tokens: extract redirect file (if any) and return clean args
@@ -70,8 +72,16 @@ redirectInfo parseRedirect(vector<string>& tokens) {
     for (size_t i = 0; i < tokens.size(); i++) {
         if ((tokens[i] == ">" || tokens[i] == "1>") && i + 1 < tokens.size()) {
             info.stdoutFile = tokens[++i];
+            info.stdoutAppend = false;
+        } else if ((tokens[i] == ">" || tokens[i] == "1>") && i + 1 < tokens.size()){
+            info.stdoutFile = tokens[++i];
+            info.stdoutAppend = true;
         } else if (tokens[i] == "2>" && i + 1 < tokens.size()) {
             info.stderrFile = tokens[++i];
+            info.stderrAppend = false;
+        } else if(tokens[i] == "2>>" && i + 1 < tokens.size()){
+            info.stderrFile = tokens[++i];
+            info.stderrAppend =true;
         } else {
             cleaned.push_back(tokens[i]);
         }
@@ -101,15 +111,15 @@ int main() {
         // int redirFd = -1;
         int stdoutFd = -1;
         if (!redir.stdoutFile.empty()) {
-          stdoutFd = open(redir.stdoutFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-          if (stdoutFd < 0) {
-            cerr << "cannot open " << redir.stdoutFile << endl; continue;
-          }
+          int flags = O_WRONLY | O_CREAT | (redir.stdoutAppend ? O_APPEND : O_TRUNC);
+          stdoutFd = open(redir.stdoutFile.c_str(), flags, 0644);
+          if (stdoutFd < 0) { cerr << "cannot open " << redir.stdoutFile << endl; continue; }
         }
 
         int stderrFd = -1;
         if (!redir.stderrFile.empty()) {
-          stderrFd = open(redir.stderrFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+          int flags = O_WRONLY | O_CREAT | (redir.stderrAppend ? O_APPEND : O_TRUNC);
+          stderrFd = open(redir.stderrFile.c_str(), flags, 0644);
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
