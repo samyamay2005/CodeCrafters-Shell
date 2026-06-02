@@ -125,34 +125,29 @@ int main() {
         }
 
         if(cmd == "cat") {
-            int savedStdout = -1;
-            if (redirFd >= 0) {
-                savedStdout = dup(STDOUT_FILENO);
-                dup2(redirFd, STDOUT_FILENO);
-                close(redirFd);
-            }
+          int savedStdout = -1;
+          if(redirFd >= 0) {
+            savedStdout = dup(STDOUT_FILENO);
+            dup2(redirFd, STDOUT_FILENO);
+            close(redirFd);
+          }
 
-            for(size_t i = 1; i < tokens.size(); i++) {
-                ifstream file(tokens[i]);
-                if (!file.is_open()) {
-                    // Error goes to stderr (not redirected) -- restore stdout first
-                    if (savedStdout >= 0) dup2(savedStdout, STDOUT_FILENO);
-                    cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
-                    if (savedStdout >= 0) dup2(redirFd >= 0 ? redirFd : savedStdout, STDOUT_FILENO);
-                    // Re-redirect for any remaining files
-                    continue;
-                }
-                string line;
-                while(getline(file, line)) 
-                  cout << line;
+          for(size_t i = 1; i < tokens.size(); i++) {
+            ifstream file(tokens[i]);
+            if(!file.is_open()) {
+              cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
+              continue;
             }
-            cout << flush;
+            // Read and write the file content exactly as-is
+            cout << file.rdbuf();
+          }
+          cout << flush;
 
-            if (savedStdout >= 0) {
-                dup2(savedStdout, STDOUT_FILENO);
-                close(savedStdout);
-            }
-            continue;
+          if (savedStdout >= 0) {
+            dup2(savedStdout, STDOUT_FILENO);
+            close(savedStdout);
+          }
+          continue;
         }
 
         if(cmd == "pwd") {
