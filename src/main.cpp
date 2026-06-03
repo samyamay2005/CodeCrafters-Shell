@@ -163,7 +163,6 @@ int main() {
 
         string command(rawInput);
         free(rawInput);
-        cout << "$ ";
         if (command.empty()) continue;
         add_history(command.c_str());
 
