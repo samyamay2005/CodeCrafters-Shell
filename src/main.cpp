@@ -7,10 +7,17 @@
 #include<sys/wait.h>
 #include<filesystem>
 #include<fstream>
-#include<fcntl.h>   
+#include<fcntl.h>
+#include<algorithm>
+#include<readline/readline.h>
+#include<readline/history.h>
+
+
+
 
 using namespace std;
 namespace fs = filesystem;
+vector<string> builtins={"echo","cd","pwd","exit", "type"};
 
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
@@ -92,14 +99,73 @@ redirectInfo parseRedirect(vector<string>& tokens) {
     return info;
 }
 
+
+char* completionGenerator(const char* text, int state) {
+    static vector<string> matches;
+    static size_t matchIndex;
+
+    if (state == 0) {
+        matches.clear();
+        matchIndex = 0;
+        string prefix(text);
+
+        // Match builtins
+        for (auto& b : builtins) {
+            if (b.substr(0, prefix.size()) == prefix)
+                matches.push_back(b);
+        }
+
+        // Match executables in PATH
+        char* pathEnv = getenv("PATH");
+        if (pathEnv) {
+            stringstream ss(pathEnv);
+            string dir;
+            while (getline(ss, dir, ':')) {
+                try {
+                    for (auto& entry : fs::directory_iterator(dir)) {
+                        string name = entry.path().filename().string();
+                        if (name.substr(0, prefix.size()) == prefix) {
+                            // Avoid duplicates
+                            if (find(matches.begin(), matches.end(), name) == matches.end())
+                                matches.push_back(name);
+                        }
+                    }
+                } catch (...) {}  // Skip unreadable dirs
+            }
+        }
+    }
+
+    if (matchIndex < matches.size())
+        return strdup(matches[matchIndex++].c_str());
+
+    return nullptr;
+}
+
+char** completionCallback(const char* text, int start, int end) {
+    // Only complete the first word (the command)
+    if (start == 0)
+        return rl_completion_matches(text, completionGenerator);
+    
+    // For arguments, fall back to filename completion (readline default)
+    return nullptr;
+}
+
 int main() {
     cout << unitbuf;
     cerr << unitbuf;
-    string command;
+    rl_attempted_completion_function = completionCallback;
+    
 
     while(1) {
+
+        char* rawInput = readline("$ ");
+        if (!rawInput) break;  // EOF (Ctrl+D)
+
+        string command(rawInput);
+        free(rawInput);
         cout << "$ ";
-        getline(cin, command);
+        if (command.empty()) continue;
+        add_history(command.c_str());
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
