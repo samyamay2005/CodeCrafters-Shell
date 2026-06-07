@@ -187,6 +187,48 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
+
+        auto pipePos = find(tokens.begin(), tokens.end(), "|");
+        if (pipePos != tokens.end()) {
+            // Check for pipe operator
+            auto pipePos = find(tokens.begin(), tokens.end(), "|");
+            if (pipePos != tokens.end()) {
+                vector<string> left(tokens.begin(), pipePos);
+                vector<string> right(pipePos + 1, tokens.end());
+
+                if (left.empty() || right.empty()) {
+                    cerr << "syntax error near |" << endl;
+                    continue;
+                }
+
+                int pipefd[2];
+                if (pipe(pipefd) < 0) {
+                    cerr << "pipe failed" << endl;
+                    continue;
+                }
+
+                // Fork left command (writer)
+                pid_t leftPid = fork();
+                if (leftPid == 0) {
+                    close(pipefd[0]);               // left doesn't read
+                    execCommand(left, STDIN_FILENO, pipefd[1]);
+                }
+
+                // Fork right command (reader)
+                pid_t rightPid = fork();
+                if (rightPid == 0) {
+                    close(pipefd[1]);               // right doesn't write
+                    execCommand(right, pipefd[0], STDOUT_FILENO);
+                }
+
+                // Parent closes both ends and waits
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(leftPid, NULL, 0);
+                waitpid(rightPid, NULL, 0);
+                continue;
+            }
+        }
         // Parse out any redirection FIRST, before dispatch
         redirectInfo redir = parseRedirect(tokens);
         string cmd = tokens[0];
@@ -209,21 +251,21 @@ int main() {
         }
 
 
-      if(cmd == "echo") {
-        int savedStdout = -1, savedStderr = -1;
-        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+        if(cmd == "echo") {
+            int savedStdout = -1, savedStderr = -1;
+            if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+            if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-        for(size_t i = 1; i < tokens.size(); i++) {
-          if(i > 1) cout << " ";
-            cout << tokens[i];
+            for(size_t i = 1; i < tokens.size(); i++) {
+                if(i > 1) cout << " ";
+                cout << tokens[i];
+            }
+            cout << endl;
+
+            if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+            if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+            continue;
         }
-        cout << endl;
-
-        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-        continue;
-      }
 
       if(cmd == "cat") {
         int savedStdout = -1, savedStderr = -1;
@@ -293,47 +335,7 @@ int main() {
         // ... builtin handlers above ...
 
         // Pipeline check
-        auto pipePos = find(tokens.begin(), tokens.end(), "|");
-        if (pipePos != tokens.end()) {
-            // Check for pipe operator
-            auto pipePos = find(tokens.begin(), tokens.end(), "|");
-            if (pipePos != tokens.end()) {
-                vector<string> left(tokens.begin(), pipePos);
-                vector<string> right(pipePos + 1, tokens.end());
-
-                if (left.empty() || right.empty()) {
-                    cerr << "syntax error near |" << endl;
-                    continue;
-                }
-
-                int pipefd[2];
-                if (pipe(pipefd) < 0) {
-                    cerr << "pipe failed" << endl;
-                    continue;
-                }
-
-                // Fork left command (writer)
-                pid_t leftPid = fork();
-                if (leftPid == 0) {
-                    close(pipefd[0]);               // left doesn't read
-                    execCommand(left, STDIN_FILENO, pipefd[1]);
-                }
-
-                // Fork right command (reader)
-                pid_t rightPid = fork();
-                if (rightPid == 0) {
-                    close(pipefd[1]);               // right doesn't write
-                    execCommand(right, pipefd[0], STDOUT_FILENO);
-                }
-
-                // Parent closes both ends and waits
-                close(pipefd[0]);
-                close(pipefd[1]);
-                waitpid(leftPid, NULL, 0);
-                waitpid(rightPid, NULL, 0);
-                continue;
-            }
-        }
+        
 
         // Single external command (existing code)
         vector<char*> args;
