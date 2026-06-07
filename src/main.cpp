@@ -12,12 +12,31 @@
 #include<readline/readline.h>
 #include<readline/history.h>
 
-
-
-
 using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type"};
+
+
+
+void execCommand(vector<string>& tokens, int inFd, int outFd) {
+    // Redirect stdin if needed
+    if (inFd != STDIN_FILENO) {
+        dup2(inFd, STDIN_FILENO);
+        close(inFd);
+    }
+    // Redirect stdout if needed
+    if (outFd != STDOUT_FILENO) {
+        dup2(outFd, STDOUT_FILENO);
+        close(outFd);
+    }
+    vector<char*> args;
+    for (auto& t : tokens) args.push_back(t.data());
+    args.push_back(nullptr);
+    execvp(args[0], args.data());
+    cerr << tokens[0] << ": command not found" << endl;
+    exit(1);
+}
+
 
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
@@ -271,11 +290,55 @@ int main() {
             if(!found) cout << msg << ": not found" << endl;
             continue;
         }
+        // ... builtin handlers above ...
 
+        // Pipeline check
+        auto pipePos = find(tokens.begin(), tokens.end(), "|");
+        if (pipePos != tokens.end()) {
+            // Check for pipe operator
+            auto pipePos = find(tokens.begin(), tokens.end(), "|");
+            if (pipePos != tokens.end()) {
+                vector<string> left(tokens.begin(), pipePos);
+                vector<string> right(pipePos + 1, tokens.end());
+
+                if (left.empty() || right.empty()) {
+                    cerr << "syntax error near |" << endl;
+                    continue;
+                }
+
+                int pipefd[2];
+                if (pipe(pipefd) < 0) {
+                    cerr << "pipe failed" << endl;
+                    continue;
+                }
+
+                // Fork left command (writer)
+                pid_t leftPid = fork();
+                if (leftPid == 0) {
+                    close(pipefd[0]);               // left doesn't read
+                    execCommand(left, STDIN_FILENO, pipefd[1]);
+                }
+
+                // Fork right command (reader)
+                pid_t rightPid = fork();
+                if (rightPid == 0) {
+                    close(pipefd[1]);               // right doesn't write
+                    execCommand(right, pipefd[0], STDOUT_FILENO);
+                }
+
+                // Parent closes both ends and waits
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(leftPid, NULL, 0);
+                waitpid(rightPid, NULL, 0);
+                continue;
+            }
+        }
+
+        // Single external command (existing code)
         vector<char*> args;
         for(auto& t : tokens) args.push_back(t.data());
         args.push_back(nullptr);
-
         pid_t pid = fork();
         if (pid == 0) {
           if (stdoutFd >= 0) { dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
