@@ -16,7 +16,7 @@
 using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type", "history"};
-
+int appendOffset = 0;
 // Returns true if cmd was a builtin and was handled
 bool runBuiltin(vector<string>& tokens) {
         string cmd = tokens[0];
@@ -55,20 +55,34 @@ bool runBuiltin(vector<string>& tokens) {
             return true;
         }
         if (cmd == "history") {
-            HIST_ENTRY** hist = history_list();
-            int total = history_length;
-            int start = 0;
-            if (tokens.size() >= 2) {
+            if (tokens.size() >= 3 && tokens[1] == "-r") {
+                read_history(tokens[2].c_str());
+                return true;
+            }
+            if (tokens.size() >= 3 && tokens[1] == "-w") {
+                write_history(tokens[2].c_str());
+                return true;
+            }
+            if (tokens.size() >= 3 && tokens[1] == "-a") {
+                append_history(history_length - appendOffset, tokens[2].c_str());
+                appendOffset = history_length;
+                return true;
+            }
+
+        HIST_ENTRY** hist = history_list();
+        int total = history_length;
+        int start = 0;
+        if (tokens.size() >= 2) {
             int n = atoi(tokens[1].c_str());
             start = max(0, total - n);
         }
         if (hist) {
-                for (int i = start; i < total; i++) {
+            for (int i = start; i < total; i++) {
                 cout << "    " << (i + 1) << "  " << hist[i]->line << endl;
+                }
             }
-        }
-        return true;
-    }
+            return true;
+        } 
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
 }
