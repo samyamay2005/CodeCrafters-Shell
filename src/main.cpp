@@ -11,6 +11,7 @@
 #include<algorithm>
 #include<readline/readline.h>
 #include<readline/history.h>
+#include<array>
 
 using namespace std;
 namespace fs = filesystem;
@@ -228,39 +229,68 @@ int main() {
         // Check for pipe operator
         auto pipePos = find(tokens.begin(), tokens.end(), "|");
         if (pipePos != tokens.end()) {
-        vector<string> left(tokens.begin(), pipePos);
-        vector<string> right(pipePos + 1, tokens.end());
+        // Split tokens into stages by "|"
+        vector<vector<string>> stages;
+        vector<string> current;
+        for (auto& t : tokens) {
+            if (t == "|") {
+                stages.push_back(current);
+                current.clear();
+            } else {
+                current.push_back(t);
+            }
+        }
+        stages.push_back(current);
 
-            if (left.empty() || right.empty()) {
+        for (auto& s : stages) {
+            if (s.empty()) {
                 cerr << "syntax error near |" << endl;
-                continue;
+                goto pipeline_done;
             }
+        }
 
-            int pipefd[2];
-            if (pipe(pipefd) < 0) {
+        {
+            int n = stages.size();
+            vector<array<int,2>> pipes(n - 1);
+            for (int i = 0; i < n - 1; i++) {
+                if (pipe(pipes[i].data()) < 0) {
                     cerr << "pipe failed" << endl;
-                    continue;
+                    goto pipeline_done;
+                }
             }
 
-            // Fork left command (writer)
-            pid_t leftPid = fork();
-            if (leftPid == 0) {
-                close(pipefd[0]);               // left doesn't read
-                execCommand(left, STDIN_FILENO, pipefd[1]);
+            vector<pid_t> pids;
+            for (int i = 0; i < n; i++) {
+                pid_t pid = fork();
+                if (pid == 0) {
+                    int inFd  = (i == 0)     ? STDIN_FILENO  : pipes[i-1][0];
+                    int outFd = (i == n-1)   ? STDOUT_FILENO : pipes[i][1];
+
+                    // Close all pipe fds not relevant to this stage
+                    for (int j = 0; j < n - 1; j++) {
+                        if (j != i-1 && j != i) {
+                            close(pipes[j][0]);
+                            close(pipes[j][1]);
+                        }
+                    }
+                    // Close the unused end of relevant pipes
+                    if (i > 0)   close(pipes[i-1][1]);
+                    if (i < n-1) close(pipes[i][0]);
+
+                    execCommand(stages[i], inFd, outFd);
+                }
+                pids.push_back(pid);
             }
 
-            // Fork right command (reader)
-            pid_t rightPid = fork();
-            if (rightPid == 0) {
-                close(pipefd[1]);               // right doesn't write
-                execCommand(right, pipefd[0], STDOUT_FILENO);
+                // Parent: close all pipe fds, wait for all children
+                for (int i = 0; i < n - 1; i++) {
+                    close(pipes[i][0]);
+                    close(pipes[i][1]);
+                }
+                for (pid_t pid : pids) waitpid(pid, NULL, 0);
             }
 
-            // Parent closes both ends and waits
-            close(pipefd[0]);
-            close(pipefd[1]);
-            waitpid(leftPid, NULL, 0);
-            waitpid(rightPid, NULL, 0);
+            pipeline_done:
             continue;
         }
         
@@ -285,22 +315,18 @@ int main() {
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
-
-        if(cmd == "echo") {
+        if (cmd == "echo" || cmd == "pwd" || cmd == "type") {
             int savedStdout = -1, savedStderr = -1;
             if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
             if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-            for(size_t i = 1; i < tokens.size(); i++) {
-                if(i > 1) cout << " ";
-                cout << tokens[i];
-            }
-            cout << endl;
+            runBuiltin(tokens);
 
             if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
             if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
             continue;
         }
+        
 
         if(cmd == "cat") {
             int savedStdout = -1, savedStderr = -1;
@@ -322,17 +348,7 @@ int main() {
             continue;
         }
 
-        if(cmd == "pwd") {
-            int savedStdout = -1, savedStderr = -1;
-            if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-            if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
-
-            cout << fs::current_path().string() << endl;
-
-            if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-            if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-            continue;
-        }
+        
 
         if(cmd == "cd") {
             if(tokens.size() < 2) continue;
@@ -344,29 +360,54 @@ int main() {
             }
             continue;
         }
+        // if(cmd == "echo") {
+        //     int savedStdout = -1, savedStderr = -1;
+        //     if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+        //     if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-        if(cmd == "type") {
-            if(tokens.size() < 2) continue;
-            string msg = tokens[1];
-            if(msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd") {
-                cout << msg << " is a shell builtin" << endl;
-                continue;
-            }
-            char* pathEnv = getenv("PATH");
-            string pathStr = pathEnv;
-            stringstream ss(pathStr);
-            string dir;
-            bool found = false;
-            while(getline(ss, dir, ':')) {
-                string fullPath = dir + "/" + msg;
-                if(access(fullPath.c_str(), X_OK) == 0) {
-                    cout << msg << " is " << fullPath << endl;
-                    found = true; break;
-                }
-            }
-            if(!found) cout << msg << ": not found" << endl;
-            continue;
-        }
+        //     for(size_t i = 1; i < tokens.size(); i++) {
+        //         if(i > 1) cout << " ";
+        //         cout << tokens[i];
+        //     }
+        //     cout << endl;
+
+        //     if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+        //     if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+        //     continue;
+        // }
+        // if(cmd == "pwd") {
+        //     int savedStdout = -1, savedStderr = -1;
+        //     if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+        //     if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+
+        //     cout << fs::current_path().string() << endl;
+
+        //     if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+        //     if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+        //     continue;
+        // }
+        // if(cmd == "type") {
+        //     if(tokens.size() < 2) continue;
+        //     string msg = tokens[1];
+        //     if(msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd") {
+        //         cout << msg << " is a shell builtin" << endl;
+        //         continue;
+        //     }
+        //     char* pathEnv = getenv("PATH");
+        //     string pathStr = pathEnv;
+        //     stringstream ss(pathStr);
+        //     string dir;
+        //     bool found = false;
+        //     while(getline(ss, dir, ':')) {
+        //         string fullPath = dir + "/" + msg;
+        //         if(access(fullPath.c_str(), X_OK) == 0) {
+        //             cout << msg << " is " << fullPath << endl;
+        //             found = true; break;
+        //         }
+        //     }
+        //     if(!found) cout << msg << ": not found" << endl;
+        //     continue;
+        // }
         // ... builtin handlers above ...
 
         // Pipeline check
