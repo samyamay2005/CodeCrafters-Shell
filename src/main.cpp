@@ -122,7 +122,7 @@ bool runBuiltin(vector<string>& tokens) {
         if(cmd=="jobs"){
             reapJobs(false); // update statuses, drop done ones silently here
             for (auto& j : jobs) {
-                cout << "[" << j.jobId << "]  Running    " << j.cmd << " &" << endl;
+                cout << "[" << j.jobId << "]+  Running                 " << j.cmd << " &" << endl;
             }
             return true;
         }
