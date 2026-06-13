@@ -57,8 +57,8 @@ bool runBuiltin(vector<string>& tokens) {
         if (cmd == "history") {
             HIST_ENTRY** hist = history_list();
             int total = history_length;
-        int start = 0;
-        if (tokens.size() >= 2) {
+            int start = 0;
+            if (tokens.size() >= 2) {
             int n = atoi(tokens[1].c_str());
             start = max(0, total - n);
         }
@@ -330,7 +330,7 @@ int main() {
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
-        if (cmd == "echo" || cmd == "pwd" || cmd == "type") {
+        if (cmd == "echo" || cmd == "pwd" || cmd == "type"|| cmd=="history") {
             int savedStdout = -1, savedStderr = -1;
             if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
             if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
