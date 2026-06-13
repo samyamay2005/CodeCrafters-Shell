@@ -465,7 +465,7 @@ int main() {
     }
     if (histFile) {
         write_history(histFile);
-        append_history(history_length - appendOffset, histFile);
+        // append_history(history_length - appendOffset, histFile);
     }
     return 0;
 }
