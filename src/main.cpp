@@ -15,43 +15,52 @@
 
 using namespace std;
 namespace fs = filesystem;
-vector<string> builtins={"echo","cd","pwd","exit", "type"};
+vector<string> builtins={"echo","cd","pwd","exit", "type", "history"};
 
 // Returns true if cmd was a builtin and was handled
 bool runBuiltin(vector<string>& tokens) {
-    string cmd = tokens[0];
-    if (cmd == "echo") {
-        for (size_t i = 1; i < tokens.size(); i++) {
-            if (i > 1) cout << " ";
-            cout << tokens[i];
-        }
-        cout << endl;
-        return true;
-    }
-    if (cmd == "type") {
-        if (tokens.size() < 2) return true;
-        string msg = tokens[1];
-        if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd") {
-            cout << msg << " is a shell builtin" << endl;
+        string cmd = tokens[0];
+        if (cmd == "echo") {
+            for (size_t i = 1; i < tokens.size(); i++) {
+                if (i > 1) cout << " ";
+                cout << tokens[i];
+            }
+            cout << endl;
             return true;
         }
-        char* pathEnv = getenv("PATH");
-        string pathstr(pathEnv);
-        stringstream ss(pathstr);
-        string dir; 
-        bool found = false;
-        while(getline(ss, dir, ':')) {
-            string fullPath = dir + "/" + msg;
-            if (access(fullPath.c_str(), X_OK) == 0) {
-                cout << msg << " is " << fullPath << endl;
-                found = true; break;
+        if (cmd == "type") {
+            if (tokens.size() < 2) return true;
+            string msg = tokens[1];
+            if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd"||msg=="history") {
+                cout << msg << " is a shell builtin" << endl;
+                return true;
+            }
+            char* pathEnv = getenv("PATH");
+            string pathstr(pathEnv);
+            stringstream ss(pathstr);
+            string dir; 
+            bool found = false;
+            while(getline(ss, dir, ':')) {
+                string fullPath = dir + "/" + msg;
+                if (access(fullPath.c_str(), X_OK) == 0) {
+                    cout << msg << " is " << fullPath << endl;
+                    found = true; break;
+                }
+            }
+            if (!found) cout << msg << ": not found" << endl;
+            return true;
+        }
+        if (cmd == "pwd") {
+            cout << fs::current_path().string() << endl;
+            return true;
+        }
+        if (cmd == "history") {
+        HIST_ENTRY** hist = history_list();
+        if (hist) {
+            for (int i = 0; hist[i]; i++) {
+                cout << "    " << (i + 1) << "  " << hist[i]->line << endl;
             }
         }
-        if (!found) cout << msg << ": not found" << endl;
-        return true;
-    }
-    if (cmd == "pwd") {
-        cout << fs::current_path().string() << endl;
         return true;
     }
     // cd doesn't make sense in a pipeline child, but handle gracefully
