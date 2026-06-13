@@ -16,6 +16,41 @@
 using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs"};
+struct Job {
+    int jobId;
+    pid_t pid;
+    string cmd;
+    bool running; // true=running, false=done(needs reap)
+};
+vector<Job> jobs;
+
+int nextJobId() {
+    // find smallest unused id (recycling)
+    int id = 1;
+    while (true) {
+        bool used = false;
+        for (auto& j : jobs) if (j.jobId == id) { used = true; break; }
+        if (!used) return id;
+        id++;
+    }
+}
+
+void reapJobs(bool printDone) {
+    for (auto& j : jobs) {
+        if (!j.running) continue;
+        int status;
+        pid_t r = waitpid(j.pid, &status, WNOHANG);
+        if (r == j.pid) {
+            j.running = false;
+            if (printDone) {
+                cout << "[" << j.jobId << "]+  Done    " << j.cmd << endl;
+            }
+        }
+    }
+    // remove done jobs (after reporting)
+    jobs.erase(remove_if(jobs.begin(), jobs.end(),
+        [](const Job& j){ return !j.running; }), jobs.end());
+}
 int appendOffset = 0;
 // Returns true if cmd was a builtin and was handled
 bool runBuiltin(vector<string>& tokens) {
@@ -69,20 +104,28 @@ bool runBuiltin(vector<string>& tokens) {
                 return true;
             }
 
-        HIST_ENTRY** hist = history_list();
-        int total = history_length;
-        int start = 0;
-        if (tokens.size() >= 2) {
-            int n = atoi(tokens[1].c_str());
-            start = max(0, total - n);
-        }
-        if (hist) {
-            for (int i = start; i < total; i++) {
-                cout << "    " << (i + 1) << "  " << hist[i]->line << endl;
+            HIST_ENTRY** hist = history_list();
+            int total = history_length;
+            int start = 0;
+            if (tokens.size() >= 2) {
+                int n = atoi(tokens[1].c_str());
+                start = max(0, total - n);
+            }
+            if (hist) {
+                for (int i = start; i < total; i++) {
+                    cout << "    " << (i + 1) << "  " << hist[i]->line << endl;
                 }
             }
             return true;
-        } 
+        }
+
+        if(cmd=="jobs"){
+            reapJobs(false); // update statuses, drop done ones silently here
+            for (auto& j : jobs) {
+                cout << "[" << j.jobId << "]  Running    " << j.cmd << " &" << endl;
+            }
+            return true;
+        }
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
 }
@@ -257,7 +300,11 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
-
+        bool background = false;
+        if (!tokens.empty() && tokens.back() == "&") {
+            background = true;
+            tokens.pop_back();
+        }
         
         // Check for pipe operator
         auto pipePos = find(tokens.begin(), tokens.end(), "|");
@@ -296,8 +343,8 @@ int main() {
             for (int i = 0; i < n; i++) {
                 pid_t pid = fork();
                 if (pid == 0) {
-                    int inFd  = (i == 0)     ? STDIN_FILENO  : pipes[i-1][0];
-                    int outFd = (i == n-1)   ? STDOUT_FILENO : pipes[i][1];
+                    int inFd  = (i == 0)?STDIN_FILENO:pipes[i-1][0];
+                    int outFd = (i == n-1)?STDOUT_FILENO : pipes[i][1];
 
                     // Close all pipe fds not relevant to this stage
                     for (int j = 0; j < n - 1; j++) {
@@ -452,15 +499,27 @@ int main() {
         args.push_back(nullptr);
         pid_t pid = fork();
         if (pid == 0) {
-          if (stdoutFd >= 0) { dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-          if (stderrFd >= 0) { dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
-          execvp(args[0], args.data());
-          cerr << tokens[0] << ": command not found" << endl;
-          exit(1);
-        }else {
-          if (stdoutFd >= 0) close(stdoutFd);
-          if (stderrFd >= 0) close(stderrFd);
-          waitpid(pid, NULL, 0);
+            if (stdoutFd >= 0) { dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+            if (stderrFd >= 0) { dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+            execvp(args[0], args.data());
+            cerr << tokens[0] << ": command not found" << endl;
+            exit(1);
+        } else {
+            if (stdoutFd >= 0) close(stdoutFd);
+            if (stderrFd >= 0) close(stderrFd);
+            if (background) {
+                int id = nextJobId();
+                // rebuild command string for display
+                string cmdStr;
+                for (size_t i = 0; i < tokens.size(); i++) {
+                    if (i) cmdStr += " ";
+                    cmdStr += tokens[i];
+                }
+                jobs.push_back({id, pid, cmdStr, true});
+                cout << "[" << id << "] " << pid << endl;
+            } else {
+                waitpid(pid, NULL, 0);
+            }
         }
     }
     if (histFile) {
