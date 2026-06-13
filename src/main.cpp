@@ -409,7 +409,7 @@ int main() {
         }
         
 
-        if(cmd == "cat") {
+        if(cmd == "cat" && !background) {
             int savedStdout = -1, savedStderr = -1;
             if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
             if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
