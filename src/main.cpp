@@ -289,7 +289,7 @@ int main() {
     }
 
     while(1) {
-
+        reapJobs(true);
         char* rawInput = readline("$ ");
         if (!rawInput) break;  // EOF (Ctrl+D)
 
@@ -300,6 +300,7 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
+        
         bool background = false;
         if (!tokens.empty() && tokens.back() == "&") {
             background = true;
@@ -440,56 +441,7 @@ int main() {
             }
             continue;
         }
-        // if(cmd == "echo") {
-        //     int savedStdout = -1, savedStderr = -1;
-        //     if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-        //     if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
-
-        //     for(size_t i = 1; i < tokens.size(); i++) {
-        //         if(i > 1) cout << " ";
-        //         cout << tokens[i];
-        //     }
-        //     cout << endl;
-
-        //     if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-        //     if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-        //     continue;
-        // }
-        // if(cmd == "pwd") {
-        //     int savedStdout = -1, savedStderr = -1;
-        //     if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-        //     if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
-
-        //     cout << fs::current_path().string() << endl;
-
-        //     if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-        //     if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-        //     continue;
-        // }
-        // if(cmd == "type") {
-        //     if(tokens.size() < 2) continue;
-        //     string msg = tokens[1];
-        //     if(msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd") {
-        //         cout << msg << " is a shell builtin" << endl;
-        //         continue;
-        //     }
-        //     char* pathEnv = getenv("PATH");
-        //     string pathStr = pathEnv;
-        //     stringstream ss(pathStr);
-        //     string dir;
-        //     bool found = false;
-        //     while(getline(ss, dir, ':')) {
-        //         string fullPath = dir + "/" + msg;
-        //         if(access(fullPath.c_str(), X_OK) == 0) {
-        //             cout << msg << " is " << fullPath << endl;
-        //             found = true; break;
-        //         }
-        //     }
-        //     if(!found) cout << msg << ": not found" << endl;
-        //     continue;
-        // }
-        // ... builtin handlers above ...
-
+        
         // Pipeline check
         
 
