@@ -16,19 +16,56 @@ using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type"};
 
-
+// Returns true if cmd was a builtin and was handled
+bool runBuiltin(vector<string>& tokens) {
+    string cmd = tokens[0];
+    if (cmd == "echo") {
+        for (size_t i = 1; i < tokens.size(); i++) {
+            if (i > 1) cout << " ";
+            cout << tokens[i];
+        }
+        cout << endl;
+        return true;
+    }
+    if (cmd == "type") {
+        if (tokens.size() < 2) return true;
+        string msg = tokens[1];
+        if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd") {
+            cout << msg << " is a shell builtin" << endl;
+            return true;
+        }
+        char* pathEnv = getenv("PATH");
+        string pathstr(pathEnv);
+        stringstream ss(pathstr);
+        string dir; 
+        bool found = false;
+        while(getline(ss, dir, ':')) {
+            string fullPath = dir + "/" + msg;
+            if (access(fullPath.c_str(), X_OK) == 0) {
+                cout << msg << " is " << fullPath << endl;
+                found = true; break;
+            }
+        }
+        if (!found) cout << msg << ": not found" << endl;
+        return true;
+    }
+    if (cmd == "pwd") {
+        cout << fs::current_path().string() << endl;
+        return true;
+    }
+    // cd doesn't make sense in a pipeline child, but handle gracefully
+    return false;
+}
 
 void execCommand(vector<string>& tokens, int inFd, int outFd) {
-    // Redirect stdin if needed
-    if (inFd != STDIN_FILENO) {
-        dup2(inFd, STDIN_FILENO);
-        close(inFd);
+    if (inFd != STDIN_FILENO) { dup2(inFd, STDIN_FILENO); close(inFd); }
+    if (outFd != STDOUT_FILENO) { dup2(outFd, STDOUT_FILENO); close(outFd); }
+
+    if (runBuiltin(tokens)) {
+        cout.flush();   // <-- add this
+        exit(0);
     }
-    // Redirect stdout if needed
-    if (outFd != STDOUT_FILENO) {
-        dup2(outFd, STDOUT_FILENO);
-        close(outFd);
-    }
+
     vector<char*> args;
     for (auto& t : tokens) args.push_back(t.data());
     args.push_back(nullptr);
@@ -36,7 +73,6 @@ void execCommand(vector<string>& tokens, int inFd, int outFd) {
     cerr << tokens[0] << ": command not found" << endl;
     exit(1);
 }
-
 
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
@@ -188,47 +224,46 @@ int main() {
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
 
+        
+        // Check for pipe operator
         auto pipePos = find(tokens.begin(), tokens.end(), "|");
         if (pipePos != tokens.end()) {
-            // Check for pipe operator
-            auto pipePos = find(tokens.begin(), tokens.end(), "|");
-            if (pipePos != tokens.end()) {
-                vector<string> left(tokens.begin(), pipePos);
-                vector<string> right(pipePos + 1, tokens.end());
+        vector<string> left(tokens.begin(), pipePos);
+        vector<string> right(pipePos + 1, tokens.end());
 
-                if (left.empty() || right.empty()) {
-                    cerr << "syntax error near |" << endl;
-                    continue;
-                }
-
-                int pipefd[2];
-                if (pipe(pipefd) < 0) {
-                    cerr << "pipe failed" << endl;
-                    continue;
-                }
-
-                // Fork left command (writer)
-                pid_t leftPid = fork();
-                if (leftPid == 0) {
-                    close(pipefd[0]);               // left doesn't read
-                    execCommand(left, STDIN_FILENO, pipefd[1]);
-                }
-
-                // Fork right command (reader)
-                pid_t rightPid = fork();
-                if (rightPid == 0) {
-                    close(pipefd[1]);               // right doesn't write
-                    execCommand(right, pipefd[0], STDOUT_FILENO);
-                }
-
-                // Parent closes both ends and waits
-                close(pipefd[0]);
-                close(pipefd[1]);
-                waitpid(leftPid, NULL, 0);
-                waitpid(rightPid, NULL, 0);
+            if (left.empty() || right.empty()) {
+                cerr << "syntax error near |" << endl;
                 continue;
             }
+
+            int pipefd[2];
+            if (pipe(pipefd) < 0) {
+                    cerr << "pipe failed" << endl;
+                    continue;
+            }
+
+            // Fork left command (writer)
+            pid_t leftPid = fork();
+            if (leftPid == 0) {
+                close(pipefd[0]);               // left doesn't read
+                execCommand(left, STDIN_FILENO, pipefd[1]);
+            }
+
+            // Fork right command (reader)
+            pid_t rightPid = fork();
+            if (rightPid == 0) {
+                close(pipefd[1]);               // right doesn't write
+                execCommand(right, pipefd[0], STDOUT_FILENO);
+            }
+
+            // Parent closes both ends and waits
+            close(pipefd[0]);
+            close(pipefd[1]);
+            waitpid(leftPid, NULL, 0);
+            waitpid(rightPid, NULL, 0);
+            continue;
         }
+        
         // Parse out any redirection FIRST, before dispatch
         redirectInfo redir = parseRedirect(tokens);
         string cmd = tokens[0];
@@ -267,37 +302,37 @@ int main() {
             continue;
         }
 
-      if(cmd == "cat") {
-        int savedStdout = -1, savedStderr = -1;
-        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+        if(cmd == "cat") {
+            int savedStdout = -1, savedStderr = -1;
+            if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+            if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-        for(size_t i = 1; i < tokens.size(); i++) {
-          ifstream file(tokens[i]);
-          if(!file.is_open()) {
-            cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
+            for(size_t i = 1; i < tokens.size(); i++) {
+                ifstream file(tokens[i]);
+                if(!file.is_open()) {
+                    cerr << "cat: " << tokens[i] << ": No such file or directory" << endl;
+                    continue;
+                }
+                cout << file.rdbuf();
+            }
+            cout << flush;
+
+            if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+            if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
             continue;
-          }
-          cout << file.rdbuf();
         }
-        cout << flush;
 
-        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-        continue;
-      }
+        if(cmd == "pwd") {
+            int savedStdout = -1, savedStderr = -1;
+            if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
+            if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
 
-      if(cmd == "pwd") {
-        int savedStdout = -1, savedStderr = -1;
-        if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
-        if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
+            cout << fs::current_path().string() << endl;
 
-        cout << fs::current_path().string() << endl;
-
-        if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
-        if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
-        continue;
-      }
+            if (savedStdout >= 0) { dup2(savedStdout, STDOUT_FILENO); close(savedStdout); }
+            if (savedStderr >= 0) { dup2(savedStderr, STDERR_FILENO); close(savedStderr); }
+            continue;
+        }
 
         if(cmd == "cd") {
             if(tokens.size() < 2) continue;
