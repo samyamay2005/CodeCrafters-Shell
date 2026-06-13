@@ -55,9 +55,15 @@ bool runBuiltin(vector<string>& tokens) {
             return true;
         }
         if (cmd == "history") {
-        HIST_ENTRY** hist = history_list();
+            HIST_ENTRY** hist = history_list();
+            int total = history_length;
+        int start = 0;
+        if (tokens.size() >= 2) {
+            int n = atoi(tokens[1].c_str());
+            start = max(0, total - n);
+        }
         if (hist) {
-            for (int i = 0; hist[i]; i++) {
+                for (int i = start; i < total; i++) {
                 cout << "    " << (i + 1) << "  " << hist[i]->line << endl;
             }
         }
