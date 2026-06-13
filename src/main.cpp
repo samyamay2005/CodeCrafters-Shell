@@ -239,7 +239,11 @@ int main() {
     cout << unitbuf;
     cerr << unitbuf;
     rl_attempted_completion_function = completionCallback;
-    
+    const char* histFile = getenv("HISTFILE");
+    if (histFile) {
+        read_history(histFile);
+        appendOffset = history_length;
+    }
 
     while(1) {
 
@@ -459,4 +463,9 @@ int main() {
           waitpid(pid, NULL, 0);
         }
     }
+    if (histFile) {
+        write_history(histFile);
+        append_history(history_length - appendOffset, histFile);
+    }
+    return 0;
 }
