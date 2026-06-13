@@ -35,21 +35,15 @@ int nextJobId() {
     }
 }
 
-void reapJobs(bool printDone) {
+void reapJobs() {
     for (auto& j : jobs) {
         if (!j.running) continue;
         int status;
         pid_t r = waitpid(j.pid, &status, WNOHANG);
         if (r == j.pid) {
             j.running = false;
-            if (printDone) {
-                cout << "[" << j.jobId << "]+  Done    " << j.cmd << endl;
-            }
         }
     }
-    // remove done jobs (after reporting)
-    jobs.erase(remove_if(jobs.begin(), jobs.end(),
-        [](const Job& j){ return !j.running; }), jobs.end());
 }
 int appendOffset = 0;
 // Returns true if cmd was a builtin and was handled
@@ -120,7 +114,7 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="jobs"){
-            reapJobs(false);
+            reapJobs();
             // find the two highest job IDs among running jobs
             int maxId = -1, secondId = -1;
             for (auto& j : jobs) {
@@ -129,8 +123,15 @@ bool runBuiltin(vector<string>& tokens) {
             }
             for (auto& j : jobs) {
                 char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
-                cout << "[" << j.jobId << "]" << marker << "  Running                 " << j.cmd << " &" << endl;
+                string status = j.running ? "Running" : "Done";
+                cout << "[" << j.jobId << "]" << marker << "  " << status
+                 << "                 " << j.cmd;
+                if (j.running) cout << " &";
+                cout << endl;
             }
+            // remove done jobs after reporting
+            jobs.erase(remove_if(jobs.begin(), jobs.end(),
+                [](const Job& j){ return !j.running; }), jobs.end());
             return true;
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
@@ -296,7 +297,7 @@ int main() {
     }
 
     while(1) {
-        reapJobs(true);
+        reapJobs();
         char* rawInput = readline("$ ");
         if (!rawInput) break;  // EOF (Ctrl+D)
 
