@@ -120,9 +120,16 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="jobs"){
-            reapJobs(false); // update statuses, drop done ones silently here
+            reapJobs(false);
+            // find the two highest job IDs among running jobs
+            int maxId = -1, secondId = -1;
             for (auto& j : jobs) {
-                cout << "[" << j.jobId << "]+  Running                 " << j.cmd << " &" << endl;
+                if (j.jobId > maxId) { secondId = maxId; maxId = j.jobId; }
+                else if (j.jobId > secondId) { secondId = j.jobId; }
+            }
+            for (auto& j : jobs) {
+                char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
+                cout << "[" << j.jobId << "]" << marker << "  Running                 " << j.cmd << " &" << endl;
             }
             return true;
         }
