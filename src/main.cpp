@@ -129,6 +129,7 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="jobs"){
+            reapJobs();
             int maxId = -1, secondId = -1;
             for (auto& j : jobs) {
                 if (j.jobId > maxId) { secondId = maxId; maxId = j.jobId; }
