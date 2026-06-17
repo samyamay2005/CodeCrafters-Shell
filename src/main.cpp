@@ -44,6 +44,21 @@ void reapJobs() {
             j.running = false;
         }
     }
+
+    int maxId = -1, secondId = -1;
+    for (auto& j : jobs) {
+        if (j.jobId > maxId) { secondId = maxId; maxId = j.jobId; }
+        else if (j.jobId > secondId) { secondId = j.jobId; }
+    }
+
+    for (auto& j : jobs) {
+        if (j.running) continue;
+        char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
+        cout << "[" << j.jobId << "]" << marker << "  Done                 " << j.cmd << endl;
+    }
+
+    jobs.erase(remove_if(jobs.begin(), jobs.end(),
+        [](const Job& j){ return !j.running; }), jobs.end());
 }
 int appendOffset = 0;
 // Returns true if cmd was a builtin and was handled
@@ -123,15 +138,11 @@ bool runBuiltin(vector<string>& tokens) {
             }
             for (auto& j : jobs) {
                 char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
-                string status = j.running ? "Running" : "Done";
-                cout << "[" << j.jobId << "]" << marker << "  " << status
-                 << "                 " << j.cmd;
+                cout << "[" << j.jobId << "]" << marker<< " Running                " << j.cmd;
                 if (j.running) cout << " &";
                 cout << endl;
             }
-            // remove done jobs after reporting
-            jobs.erase(remove_if(jobs.begin(), jobs.end(),
-                [](const Job& j){ return !j.running; }), jobs.end());
+            
             return true;
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
