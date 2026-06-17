@@ -129,8 +129,6 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="jobs"){
-            reapJobs();
-            // find the two highest job IDs among running jobs
             int maxId = -1, secondId = -1;
             for (auto& j : jobs) {
                 if (j.jobId > maxId) { secondId = maxId; maxId = j.jobId; }
@@ -138,11 +136,8 @@ bool runBuiltin(vector<string>& tokens) {
             }
             for (auto& j : jobs) {
                 char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
-                cout << "[" << j.jobId << "]" << marker<< " Running                " << j.cmd;
-                if (j.running) cout << " &";
-                cout << endl;
+                cout << "[" << j.jobId << "]" << marker << "  Running                 " << j.cmd << " &" << endl;
             }
-            
             return true;
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
