@@ -161,6 +161,15 @@ bool runBuiltin(vector<string>& tokens) {
                 [](const Job& j){ return !j.running; }), jobs.end());
             return true;
         }
+
+        if(cmd=="complete"){
+            if (tokens.size() >= 3 && tokens[1] == "-p") {
+                string target = tokens[2];
+                cout << "complete: " << target << ": no completion specification" << endl;
+                return true;
+            }
+            return true;
+        }
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
 }
@@ -431,7 +440,7 @@ int main() {
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
-        if (cmd == "echo" || cmd == "pwd" || cmd == "type"|| cmd=="history"|| cmd=="jobs") {
+        if (cmd == "echo" || cmd == "pwd" || cmd == "type"|| cmd=="history"|| cmd=="jobs"|| cmd=="complete") {
             int savedStdout = -1, savedStderr = -1;
             if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
             if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
