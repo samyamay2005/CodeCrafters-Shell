@@ -15,7 +15,7 @@
 
 using namespace std;
 namespace fs = filesystem;
-vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs"};
+vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs","complete"};
 struct Job {
     int jobId;
     pid_t pid;
@@ -75,7 +75,7 @@ bool runBuiltin(vector<string>& tokens) {
         if (cmd == "type") {
             if (tokens.size() < 2) return true;
             string msg = tokens[1];
-            if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd"||msg=="history"|| msg=="jobs") {
+            if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd"||msg=="history"|| msg=="jobs"|| msg=="complete") {
                 cout << msg << " is a shell builtin" << endl;
                 return true;
             }
