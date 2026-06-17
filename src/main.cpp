@@ -12,10 +12,13 @@
 #include<readline/readline.h>
 #include<readline/history.h>
 #include<array>
+#include<unordered_map>
+
 
 using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs","complete"};
+unordered_map<string, string> completions;
 struct Job {
     int jobId;
     pid_t pid;
@@ -165,8 +168,21 @@ bool runBuiltin(vector<string>& tokens) {
         if(cmd=="complete"){
             if (tokens.size() >= 3 && tokens[1] == "-p") {
                 string target = tokens[2];
-                cout << "complete: " << target << ": no completion specification" << endl;
+                auto it = completions.find(target);
+                if(it !=completions.end()){
+                    cout<<"complete -C '"<<it->second<<"' "<<target<<endl;
+                }
+                else{
+                    cout << "complete: " << target << ": no completion specification" << endl;
+                }
                 return true;
+            }
+
+            if (tokens.size() >= 4 && tokens[1] == "-C") {
+                string scriptPath = tokens[2];
+                string target = tokens[3];
+                completions[target] = scriptPath;
+                return true; // no output
             }
             return true;
         }
