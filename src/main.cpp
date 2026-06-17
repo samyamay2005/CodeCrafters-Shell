@@ -129,16 +129,36 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="jobs"){
-            reapJobs();
+            // update statuses (mark finished jobs, don't print yet)
+            for (auto& j : jobs) {
+                if (!j.running) continue;
+                int status;
+                pid_t r = waitpid(j.pid, &status, WNOHANG);
+                if (r == j.pid) j.running = false;
+            }
+
+            // sort by jobId so output order matches bash
+            sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b){
+                return a.jobId < b.jobId;
+            });
+
             int maxId = -1, secondId = -1;
             for (auto& j : jobs) {
                 if (j.jobId > maxId) { secondId = maxId; maxId = j.jobId; }
                 else if (j.jobId > secondId) { secondId = j.jobId; }
             }
+
             for (auto& j : jobs) {
                 char marker = (j.jobId == maxId) ? '+' : (j.jobId == secondId) ? '-' : ' ';
-                cout << "[" << j.jobId << "]" << marker << "  Running                 " << j.cmd << " &" << endl;
+                string status = j.running ? "Running" : "Done";
+                cout << "[" << j.jobId << "]" << marker << "  " << status << "                 " << j.cmd;
+                if (j.running) cout << " &";
+                cout << endl;
             }
+
+            // remove done jobs after reporting
+            jobs.erase(remove_if(jobs.begin(), jobs.end(),
+                [](const Job& j){ return !j.running; }), jobs.end());
             return true;
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
