@@ -288,51 +288,84 @@ redirectInfo parseRedirect(vector<string>& tokens) {
 }
 
 
-char* completionGenerator(const char* text, int state) {
+char* commandCompletionGenerator(const char* text, int state) {
     static vector<string> matches;
     static size_t matchIndex;
 
     if (state == 0) {
         matches.clear();
         matchIndex = 0;
+
+        // Parse current line to get command name
+        string line(rl_line_buffer);
+        istringstream iss(line);
+        string cmdName;
+        iss >> cmdName;
+
+        auto it = completions.find(cmdName);
+        if (it == completions.end()) return nullptr;
+
+        string scriptPath = it->second;
         string prefix(text);
 
-        // Match builtins
-        for (auto& b : builtins) {
-            if (b.substr(0, prefix.size()) == prefix)
-                matches.push_back(b);
+        // Build args for the completer script
+        int pipefd[2];
+        if (pipe(pipefd) < 0) return nullptr;
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            close(pipefd[0]);
+            dup2(pipefd[1], STDOUT_FILENO);
+            close(pipefd[1]);
+
+            setenv("COMP_LINE", line.c_str(), 1);
+            setenv("COMP_POINT", to_string(line.size()).c_str(), 1);
+            setenv("COMP_CWORD", "1", 1);
+
+            vector<char*> args;
+            args.push_back(scriptPath.data());
+            args.push_back(cmdName.data());
+            args.push_back((char*)text);
+            args.push_back(cmdName.data());
+            args.push_back(nullptr);
+
+            execv(scriptPath.c_str(), args.data());
+            exit(1);
         }
 
-        // Match executables in PATH
-        char* pathEnv = getenv("PATH");
-        if (pathEnv) {
-            stringstream ss(pathEnv);
-            string dir;
-            while (getline(ss, dir, ':')) {
-                try {
-                    for (auto& entry : fs::directory_iterator(dir)) {
-                        string name = entry.path().filename().string();
-                        if (name.substr(0, prefix.size()) == prefix) {
-                            // Avoid duplicates
-                            if (find(matches.begin(), matches.end(), name) == matches.end())
-                                matches.push_back(name);
-                        }
-                    }
-                } catch (...) {}  // Skip unreadable dirs
-            }
+        close(pipefd[1]);
+        FILE* fp = fdopen(pipefd[0], "r");
+        char buf[1024];
+        while (fp && fgets(buf, sizeof(buf), fp)) {
+            string line2(buf);
+            while (!line2.empty() && (line2.back() == '\n' || line2.back() == '\r'))
+                line2.pop_back();
+            if (!line2.empty() && line2.substr(0, prefix.size()) == prefix)
+                matches.push_back(line2);
         }
+        if (fp) fclose(fp);
+        close(pipefd[0]);
+        waitpid(pid, NULL, 0);
     }
 
     if (matchIndex < matches.size())
         return strdup(matches[matchIndex++].c_str());
-
     return nullptr;
 }
 
 char** completionCallback(const char* text, int start, int end) {
     // Only complete the first word (the command)
     if (start == 0)
-        return rl_completion_matches(text, completionGenerator);
+        return rl_completion_matches(text, commandCompletionGenerator);
+    string line(rl_line_buffer);
+    istringstream iss(line);
+    string cmdName;
+    iss >> cmdName;
+
+    if (completions.find(cmdName) != completions.end()) {
+        return rl_completion_matches(text, commandCompletionGenerator);
+    }
+
     
     // For arguments, fall back to filename completion (readline default)
     return nullptr;
