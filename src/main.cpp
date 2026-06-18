@@ -288,6 +288,47 @@ redirectInfo parseRedirect(vector<string>& tokens) {
 }
 
 
+char* completionGenerator(const char* text, int state) {
+    static vector<string> matches;
+    static size_t matchIndex;
+
+    if (state == 0) {
+        matches.clear();
+        matchIndex = 0;
+        string prefix(text);
+
+        // Match builtins
+        for (auto& b : builtins) {
+            if (b.substr(0, prefix.size()) == prefix)
+                matches.push_back(b);
+        }
+
+        // Match executables in PATH
+        char* pathEnv = getenv("PATH");
+        if (pathEnv) {
+            stringstream ss(pathEnv);
+            string dir;
+            while (getline(ss, dir, ':')) {
+                try {
+                    for (auto& entry : fs::directory_iterator(dir)) {
+                        string name = entry.path().filename().string();
+                        if (name.substr(0, prefix.size()) == prefix) {
+                            // Avoid duplicates
+                            if (find(matches.begin(), matches.end(), name) == matches.end())
+                                matches.push_back(name);
+                        }
+                    }
+                } catch (...) {}  // Skip unreadable dirs
+            }
+        }
+    }
+
+    if (matchIndex < matches.size())
+        return strdup(matches[matchIndex++].c_str());
+
+    return nullptr;
+}
+
 char* commandCompletionGenerator(const char* text, int state) {
     static vector<string> matches;
     static size_t matchIndex;
@@ -356,7 +397,9 @@ char* commandCompletionGenerator(const char* text, int state) {
 char** completionCallback(const char* text, int start, int end) {
     // Only complete the first word (the command)
     if (start == 0)
-        return rl_completion_matches(text, commandCompletionGenerator);
+        return rl_completion_matches(text, completionGenerator);
+    
+    // For arguments, fall back to filename completion (readline default)
     string line(rl_line_buffer);
     istringstream iss(line);
     string cmdName;
@@ -365,9 +408,6 @@ char** completionCallback(const char* text, int start, int end) {
     if (completions.find(cmdName) != completions.end()) {
         return rl_completion_matches(text, commandCompletionGenerator);
     }
-
-    
-    // For arguments, fall back to filename completion (readline default)
     return nullptr;
 }
 
