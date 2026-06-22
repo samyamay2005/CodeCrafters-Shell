@@ -337,11 +337,18 @@ char* commandCompletionGenerator(const char* text, int state) {
         matches.clear();
         matchIndex = 0;
 
-        // Parse current line to get command name
         string line(rl_line_buffer);
-        istringstream iss(line);
-        string cmdName;
-        iss >> cmdName;
+
+        // Tokenize the line up to the cursor to find cmdName and prevWord
+        vector<string> words;
+        {
+            istringstream iss(line);
+            string w;
+            while (iss >> w) words.push_back(w);
+        }
+
+        if (words.empty()) return nullptr;
+        string cmdName = words[0];
 
         auto it = completions.find(cmdName);
         if (it == completions.end()) return nullptr;
@@ -349,7 +356,17 @@ char* commandCompletionGenerator(const char* text, int state) {
         string scriptPath = it->second;
         string prefix(text);
 
-        // Build args for the completer script
+        // Determine prevWord: the word immediately before the word being completed.
+        // If the current word being typed (text) is non-empty, it's already the last
+        // token in `words` (since rl_line_buffer includes it). So prevWord is words[size-2].
+        // If text is empty (user just typed a space), the last word in `words` IS prevWord.
+        string prevWord = "";
+        if (!prefix.empty()) {
+            if (words.size() >= 2) prevWord = words[words.size() - 2];
+        } else {
+            if (words.size() >= 1) prevWord = words.back();
+        }
+
         int pipefd[2];
         if (pipe(pipefd) < 0) return nullptr;
 
@@ -359,15 +376,11 @@ char* commandCompletionGenerator(const char* text, int state) {
             dup2(pipefd[1], STDOUT_FILENO);
             close(pipefd[1]);
 
-            setenv("COMP_LINE", line.c_str(), 1);
-            setenv("COMP_POINT", to_string(line.size()).c_str(), 1);
-            setenv("COMP_CWORD", "1", 1);
-
             vector<char*> args;
             args.push_back(scriptPath.data());
             args.push_back(cmdName.data());
             args.push_back((char*)text);
-            args.push_back(cmdName.data());
+            args.push_back(prevWord.data());
             args.push_back(nullptr);
 
             execv(scriptPath.c_str(), args.data());
