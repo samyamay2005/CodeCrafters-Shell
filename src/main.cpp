@@ -177,6 +177,10 @@ bool runBuiltin(vector<string>& tokens) {
                 }
                 return true;
             }
+            if (tokens.size() >= 3 && tokens[1] == "-r") {
+                completions.erase(tokens[2]);
+                return true; // no output
+            }
 
             if (tokens.size() >= 4 && tokens[1] == "-C") {
                 string scriptPath = tokens[2];
