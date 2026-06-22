@@ -17,7 +17,7 @@
 
 using namespace std;
 namespace fs = filesystem;
-vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs","complete"};
+vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs","complete","declare"};
 unordered_map<string, string> completions;
 struct Job {
     int jobId;
@@ -78,7 +78,7 @@ bool runBuiltin(vector<string>& tokens) {
         if (cmd == "type") {
             if (tokens.size() < 2) return true;
             string msg = tokens[1];
-            if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd"||msg=="history"|| msg=="jobs"|| msg=="complete") {
+            if (msg=="echo"||msg=="exit"||msg=="type"||msg=="pwd"||msg=="cd"||msg=="history"|| msg=="jobs"|| msg=="complete"|| msg=="declare") {
                 cout << msg << " is a shell builtin" << endl;
                 return true;
             }
@@ -189,6 +189,10 @@ bool runBuiltin(vector<string>& tokens) {
                 return true; // no output
             }
             return true;
+        }
+
+        if(cmd=="declare"){
+
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
@@ -547,7 +551,7 @@ int main() {
           if (stderrFd < 0) { cerr << "cannot open " << redir.stderrFile << endl; continue; }
         }
 
-        if (cmd == "echo" || cmd == "pwd" || cmd == "type"|| cmd=="history"|| cmd=="jobs"|| cmd=="complete") {
+        if (cmd == "echo" || cmd == "pwd" || cmd == "type"|| cmd=="history"|| cmd=="jobs"|| cmd=="complete"|| cmd=="declare") {
             int savedStdout = -1, savedStderr = -1;
             if (stdoutFd >= 0) { savedStdout = dup(STDOUT_FILENO); dup2(stdoutFd, STDOUT_FILENO); close(stdoutFd); }
             if (stderrFd >= 0) { savedStderr = dup(STDERR_FILENO); dup2(stderrFd, STDERR_FILENO); close(stderrFd); }
