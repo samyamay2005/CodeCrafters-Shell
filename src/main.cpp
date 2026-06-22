@@ -375,7 +375,8 @@ char* commandCompletionGenerator(const char* text, int state) {
             close(pipefd[0]);
             dup2(pipefd[1], STDOUT_FILENO);
             close(pipefd[1]);
-
+            setenv("COMP_LINE", line.c_str(), 1);
+            setenv("COMP_POINT", to_string(rl_point).c_str(), 1);
             vector<char*> args;
             args.push_back(scriptPath.data());
             args.push_back(cmdName.data());
