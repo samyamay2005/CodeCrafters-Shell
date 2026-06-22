@@ -192,7 +192,11 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="declare"){
-
+            if (tokens.size() >= 3 && tokens[1] == "-p") {
+                auto target=tokens[2];
+                cout << "declare: " << target << ": not found" << endl;
+                return true;
+            }
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
