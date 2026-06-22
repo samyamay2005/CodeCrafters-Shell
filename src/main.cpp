@@ -19,6 +19,7 @@ using namespace std;
 namespace fs = filesystem;
 vector<string> builtins={"echo","cd","pwd","exit", "type", "history","jobs","complete","declare"};
 unordered_map<string, string> completions;
+unordered_map<string, string> shellVars;
 struct Job {
     int jobId;
     pid_t pid;
@@ -193,10 +194,26 @@ bool runBuiltin(vector<string>& tokens) {
 
         if(cmd=="declare"){
             if (tokens.size() >= 3 && tokens[1] == "-p") {
-                auto target=tokens[2];
-                cout << "declare: " << target << ": not found" << endl;
+                string name=tokens[2];
+                auto lookOut=shellVars.find(name);
+                if(lookOut!=shellVars.end()){
+                    cout << "declare -- " << name << "=\"" << lookOut->second << "\"" << endl;
+                }else{
+                    cout << "declare: " << name << ": not found" << endl;
+                }
                 return true;
             }
+
+            if (tokens.size() >= 2 && tokens[1] != "-p") {
+                string assignment = tokens[1];
+                size_t eq = assignment.find('=');
+                if (eq != string::npos) {
+                    string name = assignment.substr(0, eq);
+                    string value = assignment.substr(eq + 1);
+                    shellVars[name] = value;
+                }
+            }
+            return true;
         }
     // cd doesn't make sense in a pipeline child, but handle gracefully
     return false;
