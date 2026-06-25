@@ -193,6 +193,30 @@ bool runBuiltin(vector<string>& tokens) {
         }
 
         if(cmd=="declare"){
+            if (tokens.size() >= 2 && tokens[1] != "-p") {
+                string assignment = tokens[1];
+                size_t eq = assignment.find('=');
+                if (eq != string::npos) {
+                string name = assignment.substr(0, eq);
+                string value = assignment.substr(eq + 1);
+
+                // Validate: must start with letter or _, rest can be letters/digits/_
+                bool valid = !name.empty() && (isalpha(name[0]) || name[0] == '_');
+                if (valid) {
+                    for (size_t i = 1; i < name.size(); i++) {
+                        if (!isalnum(name[i]) && name[i] != '_') { valid = false; break; }
+                    }
+                }
+
+                if (!valid) {
+                    cout << "declare: `" << assignment << "': not a valid identifier" << endl;
+                    return true;
+                }
+
+                    shellVars[name] = value;
+                }
+                return true;
+            }
             if (tokens.size() >= 3 && tokens[1] == "-p") {
                 string name=tokens[2];
                 auto lookOut=shellVars.find(name);
