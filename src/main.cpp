@@ -500,6 +500,27 @@ int main() {
 
         vector<string> tokens = tokenize(command);
         if(tokens.empty()) continue;
+
+        // Expand $VAR references in every token
+        for (auto& tok : tokens) {
+            string expanded;
+            size_t i = 0;
+            while (i < tok.size()) {
+                if (tok[i] == '$' && i + 1 < tok.size() && (isalpha(tok[i+1]) || tok[i+1] == '_')) {
+                    i++;
+                    string varName;
+                    while (i < tok.size() && (isalnum(tok[i]) || tok[i] == '_')) {
+                        varName += tok[i++];
+                    }
+                    auto it = shellVars.find(varName);
+                    if (it != shellVars.end()) expanded += it->second;
+                    // undefined variable -> expands to empty string
+                } else {
+                    expanded += tok[i++];
+                }
+            }
+            tok = expanded;
+        }
         
         bool background = false;
         if (!tokens.empty() && tokens.back() == "&") {
