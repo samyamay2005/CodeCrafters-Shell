@@ -515,6 +515,14 @@ int main() {
                     auto it = shellVars.find(varName);
                     if (it != shellVars.end()) expanded += it->second;
                     // undefined variable -> expands to empty string
+                }  else if (tok[i] == '$' && i + 1 < tok.size() && (isalpha(tok[i+1]) || tok[i+1] == '_')) {
+                    i++;
+                    string varName;
+                    while (i < tok.size() && (isalnum(tok[i]) || tok[i] == '_')) {
+                        varName += tok[i++];
+                    }
+                    auto it = shellVars.find(varName);
+                    if (it != shellVars.end()) expanded += it->second;
                 } else {
                     expanded += tok[i++];
                 }
