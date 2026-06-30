@@ -530,6 +530,10 @@ int main() {
             }
             tok = expanded;
         }
+        tokens.erase(remove_if(tokens.begin(), tokens.end(),
+        [](const string& t){ return t.empty(); }), tokens.end());
+
+        if (tokens.empty()) continue;
         
         bool background = false;
         if (!tokens.empty() && tokens.back() == "&") {
