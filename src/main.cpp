@@ -506,16 +506,17 @@ int main() {
             string expanded;
             size_t i = 0;
             while (i < tok.size()) {
-                if (tok[i] == '$' && i + 1 < tok.size() && (isalpha(tok[i+1]) || tok[i+1] == '_')) {
-                    i++;
-                    string varName;
-                    while (i < tok.size() && (isalnum(tok[i]) || tok[i] == '_')) {
-                        varName += tok[i++];
+                if (tok[i] == '$' && i + 1 < tok.size() && tok[i+1] == '{') {
+                    size_t closeBrace = tok.find('}', i + 2);
+                    if (closeBrace != string::npos) {
+                        string varName = tok.substr(i + 2, closeBrace - (i + 2));
+                        auto it = shellVars.find(varName);
+                        if (it != shellVars.end()) expanded += it->second;
+                        i = closeBrace + 1;
+                        continue;
                     }
-                    auto it = shellVars.find(varName);
-                    if (it != shellVars.end()) expanded += it->second;
-                    // undefined variable -> expands to empty string
-                }  else if (tok[i] == '$' && i + 1 < tok.size() && (isalpha(tok[i+1]) || tok[i+1] == '_')) {
+                    expanded += tok[i++];
+                } else if (tok[i] == '$' && i + 1 < tok.size() && (isalpha(tok[i+1]) || tok[i+1] == '_')) {
                     i++;
                     string varName;
                     while (i < tok.size() && (isalnum(tok[i]) || tok[i] == '_')) {
