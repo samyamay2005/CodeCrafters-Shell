@@ -8,27 +8,64 @@ interpreting shell commands, running external programs and builtin commands like
 cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
 REPLs, builtin commands, and more.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## Features implemented
 
-# Passing the first stage
+- **Built-in commands**: `echo`, `cd`, `pwd`, `exit`, `type`, `history`,
+  `jobs`, `complete`, `declare`
+- **External command execution** via `fork`/`execvp`, with proper PATH
+  resolution
+- **I/O redirection**: `>`, `1>`, `>>`, `1>>`, `2>`, `2>>`
+- **Pipelines**: supports chaining any number of commands with `|`, including
+  built-ins appearing anywhere in the chain
+- **Background jobs**: run commands with `&`, list them with `jobs`
+  (with `+`/`-` current/previous job markers), and get automatic
+  `Done` notifications before the next prompt
+- **Quoting and escaping**: single quotes, double quotes, and backslash
+  escapes, matching POSIX shell tokenization rules
+- **Command history**: in-memory history via GNU Readline, `history [n]`,
+  `history -r/-w/-a <file>`, and `HISTFILE`-based persistence across sessions
+- **Tab completion**:
+  - Built-in commands and PATH executables autocomplete on the first word
+  - `complete -C <script> <command>` registers an external completer script
+    for argument completion
+  - `complete -p <command>` and `complete -r <command>` to inspect/remove
+    registrations
+  - Registered completers are invoked with the standard arguments
+    (`argv[1]` = command, `argv[2]` = current word, `argv[3]` = previous word)
+    and environment variables (`COMP_LINE`, `COMP_POINT`)
+- **Shell variables**: `declare NAME=VALUE` and `declare -p NAME`, with
+  identifier validation
+- **Parameter expansion**: `$VAR` and `${VAR}` forms, including unset
+  variables expanding to an empty string and being dropped from the
+  argument list when they contribute no literal text
 
-The entry point for your `shell` implementation is in `src/main.cpp`. Study and
-uncomment the relevant code, then run the command below to execute the tests on
-our servers:
+## Building and running
+
+This project uses CMake and requires the GNU Readline development
+headers/library to be available on your system (e.g. `libreadline-dev` on
+Debian/Ubuntu).
 
 ```sh
-codecrafters submit
+cmake -B build -S .
+cmake --build build
+./build/shell
 ```
 
-Time to move on to the next stage!
+Alternatively, once you've cloned this repository, the included
+`your_program.sh` script will compile and run the shell for you:
 
-# Stage 2 & beyond
+```sh
+./your_program.sh
+```
 
-Note: This section is for stages 2 and beyond.
+## Project structure
 
-1. Ensure you have `cmake` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main.cpp`.
-1. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+```
+.
+├── src/
+│   └── main.cpp        # Shell implementation
+├── CMakeLists.txt      # Build configuration
+├── compile.sh           # Compiles the project
+├── run.sh                # Runs the compiled shell
+└── your_program.sh      # Entry point used by CodeCrafters tests
+```
